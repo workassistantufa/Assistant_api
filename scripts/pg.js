@@ -10,6 +10,7 @@ const pool = new Pool(config.dbConfig);
  * @param {BigInt} id - id таблицы docColumn.
  * @returns {Object.<string, string>} Возвращает строку таблицы в виде объекта, типа: Ключ - Наименование столбца, значение - Содержимое столбца.
  */
+/*
 async function findByID({
     docID,
     id
@@ -34,13 +35,14 @@ async function findByID({
     };
     return response;
 };
-
+*/
 /**
  * Поиск записей в таблице по docID и/или условию where.
  * @param {BigInt} docID - id таблицы document.
  * @param {Object.<string, string>} where - условие поиска. Ключ - Наименование столбца, значение - Содержимое столбца.
  * @returns {rows[Object.<string, string>]} Возвращает строки таблицы в виде объекта, типа: Ключ - Наименование столбца, значение - Содержимое столбца.
  */
+/*
 async function findAll({
     docID,
     where
@@ -83,7 +85,7 @@ async function findAll({
     };
     return response;
 };
-
+*/
 /**
  * Поиск записи в таблице по docID и id, также потск данных в дочерних таблицах.
  * @param {BigInt} docID - id таблицы document.
@@ -120,25 +122,22 @@ async function findWithChildren({
 };
 
 /**
- * Поиск в таблице document
- * @param {BigInt} docID - id таблицы document.
+ * Возвращает информацию о столбцах таблиц системы
+ * @param {BigInt} tableID - id таблицы tablelist.
  * @returns {rows[Object.<string, string>]} Возвращает строки таблицы в виде объекта, типа: Ключ - Наименование столбца, значение - Содержимое столбца.
  */
-async function find_Doc({
-    docID
-}) {
+async function tableInfo({
+    tableID
+} = {}) {
     let response = {};
     let res = {};
     const client = await pool.connect();
     try {
-        //await client.query('drop table document');
-        //return;
-
-        if (docID) {
-            res = await client.query('SELECT * FROM document WHERE id = $1', [docID]);
+        if (tableID) {
+            res = await client.query('SELECT * FROM tablelist WHERE id = $1', [tableID]);
             response = res.rows[0];
         } else {
-            res = await client.query('SELECT * FROM document');
+            res = await client.query('SELECT * FROM tablelist');
             response = res.rows;
         };
     } catch (error) {
@@ -151,24 +150,24 @@ async function find_Doc({
 };
 
 /**
- * Поиск в таблице document
- * @param {BigInt} docID - id таблицы document.
+ * Поиск в таблице columnlist
+ * @param {BigInt} tableID - id таблицы tablelist.
+ * @param {BigInt} id - id таблицы columnlist.
  * @returns {rows[Object.<string, string>]} Возвращает строки таблицы в виде объекта, типа: Ключ - Наименование столбца, значение - Содержимое столбца.
  */
-async function find_DocColumn({
-    docID,
+async function columnListInfo({
+    tableID,
     id
-}) {
+} = {}) {
     let response = {};
     let res = {};
     const client = await pool.connect();
     try {
         if (id) {
-            res = await client.query('SELECT * FROM doccolumn WHERE id = $1', [id]);
+            res = await client.query('SELECT * FROM columnlist WHERE id = $1', [id]);
             response = res.rows[0];
-        };
-        if (docID) {
-            res = await client.query('SELECT * FROM doccolumn WHERE docID = $1', [docID]);
+        } else if (tableID) {
+            res = await client.query('SELECT * FROM columnlist WHERE tableid = $1', [tableID]);
             response = res.rows;
         };
     } catch (error) {
@@ -179,14 +178,14 @@ async function find_DocColumn({
     };
     return response;
 };
-
+/*
 async function create({
-    docID,
-    docColumn = {}
-}) {
+    tableID,
+    columnList = {}
+} = {}) {
     let response = {};
     let res = {};
-    if (!docID) return response.Error = 'docID is null';
+    if (!tableID) return response.Error = 'tableID is null';
 
     let columns = '';
     let values = '';
@@ -216,7 +215,7 @@ async function create({
         //console.log('variable=', variable);
 
         const query = 'INSERT INTO ' + docModel.tablename + ' (' + columns + ') VALUES (' + values + ')';
-        console.log('query=',query);
+        console.log('query=', query);
         await client.query(query, variable);
 
         res = await client.query('SELECT MAX(id) FROM ' + docModel.tablename);
@@ -232,37 +231,34 @@ async function create({
     };
     return response;
 };
-
+*/
 /**
- * Создание новой строки в таблице document.
- * @param {Object.<string, string>} docColumn - значения в новой строке. Ключ - Наименование столбца, значение - Содержимое столбца.
- * @returns {Object.<string, string>} Возвращает новую строку таблицы document в виде объекта, типа: Ключ - Наименование столбца, значение - Содержимое столбца.
+ * Создание новой строки в таблице tablelist.
+ * @param {Object.<string, string>} columnList - значения в новой строке. Ключ - Наименование столбца, значение - Содержимое столбца.
+ * @returns {Object.<string, string>} Возвращает новую строку таблицы tablelist в виде объекта, типа: Ключ - Наименование столбца, значение - Содержимое столбца.
  */
-async function create_Doc({
-    docColumn = {}
-}) {
+async function createTable({
+    columnList = {}
+} = {}) {
     let response = {};
     const client = await pool.connect();
     try {
-        const doc = await client.query('SELECT MAX(id) FROM document');
+        const doc = await client.query('SELECT MAX(id) FROM tablelist');
         const newId = doc.rows[0].max ? Number(doc.rows[0].max) + 1 : 1;
         //console.log('newId=', newId);
-        const name = docColumn.name ? docColumn.name : 'Новый_документ' + newId;
-        const tableName = docColumn.tableName ? docColumn.tableName : 'newtable' + newId;
-        const description = docColumn.description ? docColumn.description : '';
-        const parent = docColumn.parent ? docColumn.parent : null;
-        const variable = [newId, name, tableName, description, parent];
+        const name = columnList.name ? columnList.name : 'Новый_документ' + newId;
+        const tableName = columnList.tableName ? columnList.tableName : 'newtable' + newId;
+        const description = columnList.description ? columnList.description : '';
+        const parent = columnList.parent ? columnList.parent : null;
+        const variable = [name, tableName, description, parent];
 
-        const query = `INSERT INTO document (id, name, tableName, description, parent)
-                        VALUES ($1, $2, $3, $4, $5)`;
+        const query = `INSERT INTO tablelist (name, tableName, description, parent)
+                        VALUES ($1, $2, $3, $4)`;
 
         await client.query(query, variable);
 
-        const newDoc = await client.query('SELECT * FROM document WHERE id = $1', [newId]);
+        const newDoc = await client.query('SELECT * FROM tablelist WHERE id = $1', [newId]);
         response = newDoc.rows[0];
-
-        //const newDoc = await client.query('SELECT * FROM document');        
-        //response = newDoc.rows;
 
     } catch (error) {
         console.log(error.stack);
@@ -274,38 +270,35 @@ async function create_Doc({
 };
 
 /**
- * Создание новой строки в таблице docColumn.
- * @param {BigInt} docID - id таблицы document.
- * @param {Object.<string, string>} docColumn - значения в новой строке. Ключ - Наименование столбца, значение - Содержимое столбца.
- * @returns {Object.<string, string>} Возвращает новую строку таблицы docColumn в виде объекта, типа: Ключ - Наименование столбца, значение - Содержимое столбца.
+ * Создание новой строки в таблице columnList.
+ * @param {BigInt} tableID - id таблицы document.
+ * @param {Object.<string, string>} columnList - значения в новой строке. Ключ - Наименование столбца, значение - Содержимое столбца.
+ * @returns {Object.<string, string>} Возвращает новую строку таблицы columnList в виде объекта, типа: Ключ - Наименование столбца, значение - Содержимое столбца.
  */
-async function create_DocColumn({
-    docID,
-    docColumn = {}
-}) {
+async function createColumn({
+    tableID,
+    columnList = {}
+} = {}) {
     let response = {};
     const client = await pool.connect();
-    if (!docID) return response.Error = 'docID is null';
+    if (!tableID) return response.Error = 'tableID is null';
     try {
-        const doc = await client.query('SELECT MAX(id) FROM docColumn');
+        const doc = await client.query('SELECT MAX(id) FROM columnList');
         const newId = doc.rows[0].max ? Number(doc.rows[0].max) + 1 : 1;
         //console.log('newId=', newId);
-        const name = docColumn.name ? docColumn.name : 'Новый_столбец' + newId;
-        const columnName = docColumn.columnName ? docColumn.columnName : 'newcolumn' + newId;
-        const datatype = docColumn.datatype ? docColumn.datatype : 'TEXT';
-        const description = docColumn.description ? docColumn.description : '';
-        const variable = [newId, name, columnName, datatype, description, docID];
+        const name = columnList.name ? columnList.name : 'Новый_столбец' + newId;
+        const columnName = columnList.columnName ? columnList.columnName : 'newcolumn' + newId;
+        const datatype = columnList.datatype ? columnList.datatype : 'TEXT';
+        const description = columnList.description ? columnList.description : '';
+        const variable = [name, columnName, datatype, description, tableID];
 
-        const query = `INSERT INTO doccolumn (id, name, columnName, datatype, description, docid)
-                        VALUES ($1, $2, $3, $4, $5, $6)`;
+        const query = `INSERT INTO columnList (name, columnName, datatype, description, tableID)
+                        VALUES ($1, $2, $3, $4, $5)`;
 
         await client.query(query, variable);
 
-        const newDoc = await client.query('SELECT * FROM docColumn WHERE id = $1', [newId]);
+        const newDoc = await client.query('SELECT * FROM columnList WHERE id = $1', [newId]);
         response = newDoc.rows[0];
-
-        //const newDoc = await client.query('SELECT * FROM docColumn');        
-        //response = newDoc.rows;
 
     } catch (error) {
         console.log(error.stack);
@@ -320,45 +313,54 @@ async function create_DocColumn({
 
 /**
  * Информация о таблице в БД
- * @param {Object.<string, string>} tableProperty - Schema, Name, docID.
- * @returns {Object.<string, string>} tableInfo: response.Exists, response.docColumn
+ * @param {Object.<string, string>} Content - Type: [table, view], Schema, Name, tableID.
+ * @returns {Object.<string, string>} dbInfo: response.Exists, response.columnList
  */
-async function tableInfo(tableProperty) {
+async function dbInfo({
+    Type,
+    Schema,
+    Name
+} = {}) {
     let response = {};
+    if (!Type) return response.Error = 'Type is null';
+    if (!Name) return response.Error = 'Name is null';
+
     let variable = [];
-    if (tableProperty.Schema) variable = [tableProperty.Name, tableProperty.Schema, ]
-    else variable = [tableProperty.Name];
+    if (Schema) variable = [Name, Schema]
+    else variable = [Name];
     let query = '';
     let resp = {};
 
     const client = await pool.connect();
 
     try {
-        query = `SELECT EXISTS (
-            SELECT 1
-            FROM  information_schema.tables 
-            WHERE table_name = $1 `;
-        if (tableProperty.Schema) query = query + ' AND table_schema = $2 '
-        query = query + ')';
-        //console.log('query=',query, tableProperty.Name);
-
-        //resp = await pool.query('SELECT * FROM  information_schema.tables');
-        //console.log('resp=', resp.rows);
-
-        resp = await pool.query(query, variable);
-        //console.log('resp=', resp.rows[0]);
-
-        response.Exists = resp.rows[0].exists;
-
-        if (response.Exists) {
-            query = `SELECT column_name, column_default, is_nullable, data_type
-                FROM  information_schema.columns 
+        if (Type == 'table') {
+            query = `SELECT EXISTS (
+                SELECT 1
+                FROM  information_schema.tables
                 WHERE table_name = $1 `;
-            if (tableProperty.Schema) query = query + ' AND table_schema = $2'
+            if (Schema) query = query + ' AND table_schema = $2 '
+            query = query + ')';
+            //console.log('query=',query, Name);
+
+            //resp = await pool.query('SELECT * FROM  information_schema.tables');
+            //console.log('resp=', resp.rows);
+
             resp = await pool.query(query, variable);
-            //console.log('resp=',resp.rows);
-            response.docColumn = resp.rows;
-        }
+            //console.log('resp=', resp.rows[0]);
+
+            response.Exists = resp.rows[0].exists;
+
+            if (response.Exists) {
+                query = `SELECT column_name, column_default, is_nullable, data_type
+                    FROM  information_schema.columns 
+                    WHERE table_name = $1 `;
+                if (Schema) query = query + ' AND table_schema = $2'
+                resp = await pool.query(query, variable);
+                //console.log('resp=',resp.rows);
+                response.columnList = resp.rows;
+            };
+        };
     } catch (error) {
         console.log(error.stack);
         response.Error = error.stack;
@@ -373,15 +375,15 @@ async function tableInfo(tableProperty) {
  * @param {string} Type - тип объекта: table, view.
  * @param {string} Name - наименование объекта.
  * @param {string} Method - метод изменения: create, alter, drop.
- * @param {rows[Object.<string, string>]} docColumn - значения объекта. Ключ - Наименование, значение - Содержимое.
+ * @param {rows[Object.<string, string>]} columnList - значения объекта. Ключ - Наименование, значение - Содержимое.
  * @returns {Object.<string, string>} - информация: Message или Error.
  */
 async function entityChange({
     Type,
     Name,
     Method,
-    docColumn
-}) {
+    columnList
+} = {}) {
     let response = {};
     let resp = {};
     let query = '';
@@ -398,31 +400,18 @@ async function entityChange({
                 resp = await pool.query(query);
                 //console.log('resp=', resp);
                 response.Message = 'SUCCESSFULLY: ' + query;
-
-                //Если есть docColumn
-                if (docColumn) {
-                    for await (const column of docColumn) {
-                        const _columnGet = await columnGet(column);
-                        if (_columnGet.Error) throw new UserException(_columnGet.Error);
-                        query = 'ALTER TABLE ' + Name + ' ADD COLUMN ' + _columnGet.column;
-                        console.log('query=', query);
-                        resp = await pool.query(query);
-                        //console.log('resp=', resp);
-                        response.Message = 'SUCCESSFULLY: ' + query;
-                    };
-                };
             };
         };
         if (Method == 'alter') {
             if (Type == 'table') {
-                //Если есть docColumn
-                if (docColumn) {
-                    for await (const column of docColumn) {
+                //Если есть columnList
+                if (columnList) {
+                    for await (const column of columnList) {
                         const _columnGet = columnGet(column);
                         if (_columnGet.Error) throw new UserException(_columnGet.Error);
                         query = 'ALTER TABLE ' + Name + ' ADD COLUMN ' + _columnGet.column;
                         console.log('query=', query);
-                        //resp = await pool.query(query);
+                        resp = await pool.query(query);
                         //console.log('resp=', resp);
                         response.Message = 'SUCCESSFULLY: ' + query;
                     };
@@ -449,22 +438,22 @@ function UserException(message) {
 
 /**
  * Возвращает описание полей через запятую
- * @param {Object.<string, string>} docColumn - массив объектов с опиманием полей
+ * @param {Object.<string, string>} columnList - массив объектов с опиманием полей
  * @returns {Object.<string, string>} - response.Error или response.column
  */
 function columnGet(column) {
     let response = {};
-    if (!column) return response.Error = 'docColumn is null';
+    if (!column) return response.Error = 'columnList is null';
 
-    const columnName = column.columnName;
-    if (!columnName) return response.Error = 'columnName is null';
+    const columnname = column.columnname;
+    if (!columnname) return response.Error = 'columnname is null';
 
-    const dataType = column.dataType;
-    if (!dataType) return response.Error = 'dataType is null';
+    const datatype = column.datatype;
+    if (!datatype) return response.Error = 'datatype is null';
 
     let allowNull = 'true'; // По умолчанию true
-    if (column.allowNull === undefined) allowNull = 'true'
-    else if (!column.allowNull) allowNull = 'false';
+    if (column.allownull === undefined) allowNull = 'true'
+    else if (!column.allownull) allowNull = 'false';
     if (allowNull == 'false') allowNull = ' NOT NULL '
     else allowNull = ' NULL ';
 
@@ -486,7 +475,7 @@ function columnGet(column) {
         unique = '';
     };
 
-    const query = columnName + ' ' + dataType + references + allowNull + unique + _default;
+    const query = columnname + ' ' + datatype + references + allowNull + unique + _default;
     //console.log('query=', query);
     response.column = query;
 
@@ -496,14 +485,16 @@ function columnGet(column) {
 
 
 module.exports = {
-    findByID,
-    findAll,
-    create,
-    find_Doc,
-    find_DocColumn,
-    create_Doc,
-    create_DocColumn,
+    //findByID,
+    //findAll,
+    //create,
+    
+
+    createTable,
+    createColumn,
     tableInfo,
+    columnListInfo,
+    dbInfo,
     entityChange,
 };
 
