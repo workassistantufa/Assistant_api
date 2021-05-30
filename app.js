@@ -25,7 +25,9 @@ router.get("/api", routes.get);
 
 //router.delete("/api", routes.delete);
 
-router.get("/migrateDB", routes.migrateDB);
+router.get("/migrateDB", routes.migrateDB); 
+
+router.get("/visualization", routes.visualization);
 
 app.use(router.routes())
 

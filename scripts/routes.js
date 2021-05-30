@@ -20,9 +20,7 @@ module.exports.get_api = (ctx) => {
      <p>"Сервер Ассистент запущен"</p>
      <p><a href="api">Тест get</a></p>
      <p><a href="migrateDB">Создание таблиц</a></p>
-     <!--
-     <p><a href="testDbConnection">Тест подключения к базе</a></p>
-      -->
+     <p><a href="visualization">Визуализация таблиц</a></p>
     </body>
    </html>`
 };
@@ -290,7 +288,7 @@ async function serviceTables_get() {
         Name: 'tablelist'
     };
     const db_tableInfo = await pg.dbInfo(Content);
-    if(!db_tableInfo.Exists) return response;
+    if (!db_tableInfo.Exists) return response;
 
     const docDictionary = config.docDictionary_get();
     response.push({
@@ -305,4 +303,24 @@ async function serviceTables_get() {
     });
 
     return response;
+};
+
+module.exports.visualization = async (ctx) => {
+    //Читаем информацию из файла
+    const style = await fs.promises.readFile("./visual/style.css");
+    const treeData = await fs.promises.readFile("./visual/treeData.js");
+    const fullTreeScriptLib = await fs.promises.readFile("./visual/fullTreeScriptLib.js");
+    ctx.body =
+`<html>
+<head>
+ <meta http-equiv="content-type" content="text/html; charset=utf-8">
+ <title>Ассистент сервер</title>
+</head>
+<style>` + style + `</style>
+<body>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script>` + treeData + `</script>
+<script>` + fullTreeScriptLib + `</script>
+</body>
+</html>`
 };
