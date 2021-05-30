@@ -4,6 +4,10 @@ const util = require('util');
 const exec = util.promisify(require('child_process').exec);
 const config = require('.././config.js');
 
+/**
+ * route module.
+ * @module route
+ */
 module.exports.get_api = (ctx) => {
     ctx.body =
         `<html>
@@ -242,10 +246,10 @@ async function table_create(db_tableInfo, tablename) {
 
 /**
  * Создание столбца таблицы в БД если её нет
- * @param {rows[Object.<string, string>]} db_columnList - имеющаяся информация о таблице в БД.
+ * @param {Object[]} db_columnList - имеющаяся информация о таблице в БД.
  * @param {string} tablename - наименование таблицы.
- * @param {rows[Object.<string, string>]}  columns - свойства столбцов.
- * @returns {Object.<string, string>} - информация: Message или Error.
+ * @param {Object[]}  columns - свойства столбцов.
+ * @returns {Object[]} - информация: Message или Error.
  */
 async function column_create(db_columnList, tablename, columns) {
     let response = {};
@@ -275,7 +279,7 @@ async function column_create(db_columnList, tablename, columns) {
 
 /**
  * Собираем данные о служебных таблицах
- * @returns {rows[Object.<string, string>]} [{tablename, columnList[]}]
+ * @returns {Object[]} [{tablename, columnList[]}]
  */
 async function serviceTables_get() {
     let response = [];

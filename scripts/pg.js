@@ -5,6 +5,11 @@ const config = require('.././config.js');
 const pool = new Pool(config.dbConfig);
 
 /**
+ * pg module.
+ * @module pg
+ */
+
+/**
  * Поиск записи в таблице по docID и/или id.
  * @param {BigInt} docID - id таблицы document.
  * @param {BigInt} id - id таблицы docColumn.
@@ -40,7 +45,7 @@ async function findByID({
  * Поиск записей в таблице по docID и/или условию where.
  * @param {BigInt} docID - id таблицы document.
  * @param {Object.<string, string>} where - условие поиска. Ключ - Наименование столбца, значение - Содержимое столбца.
- * @returns {rows[Object.<string, string>]} Возвращает строки таблицы в виде объекта, типа: Ключ - Наименование столбца, значение - Содержимое столбца.
+ * @returns {Object[]} Возвращает строки таблицы в виде объекта, типа: Ключ - Наименование столбца, значение - Содержимое столбца.
  */
 /*
 async function findAll({
@@ -90,7 +95,7 @@ async function findAll({
  * Поиск записи в таблице по docID и id, также потск данных в дочерних таблицах.
  * @param {BigInt} docID - id таблицы document.
  * @param {BigInt} id - id таблицы docColumn.
- * @returns {rows[Object.<string, string>]} Возвращает строки таблиц в виде объекта, типа: Ключ - Наименование столбца, значение - Содержимое столбца.
+ * @returns {Object[]} Возвращает строки таблиц в виде объекта, типа: Ключ - Наименование столбца, значение - Содержимое столбца.
  */
 async function findWithChildren({
     docID,
@@ -124,7 +129,7 @@ async function findWithChildren({
 /**
  * Возвращает информацию о столбцах таблиц системы
  * @param {BigInt} tableID - id таблицы tablelist.
- * @returns {rows[Object.<string, string>]} Возвращает строки таблицы в виде объекта, типа: Ключ - Наименование столбца, значение - Содержимое столбца.
+ * @returns {Object[]} Возвращает строки таблицы в виде объекта, типа: Ключ - Наименование столбца, значение - Содержимое столбца.
  */
 async function tableInfo({
     tableID
@@ -153,7 +158,7 @@ async function tableInfo({
  * Поиск в таблице columnlist
  * @param {BigInt} tableID - id таблицы tablelist.
  * @param {BigInt} id - id таблицы columnlist.
- * @returns {rows[Object.<string, string>]} Возвращает строки таблицы в виде объекта, типа: Ключ - Наименование столбца, значение - Содержимое столбца.
+ * @returns {Object[]} Возвращает строки таблицы в виде объекта, типа: Ключ - Наименование столбца, значение - Содержимое столбца.
  */
 async function columnListInfo({
     tableID,
@@ -375,7 +380,7 @@ async function dbInfo({
  * @param {string} Type - тип объекта: table, view.
  * @param {string} Name - наименование объекта.
  * @param {string} Method - метод изменения: create, alter, drop.
- * @param {rows[Object.<string, string>]} columnList - значения объекта. Ключ - Наименование, значение - Содержимое.
+ * @param {Object[]} columnList - значения объекта. Ключ - Наименование, значение - Содержимое.
  * @returns {Object.<string, string>} - информация: Message или Error.
  */
 async function entityChange({

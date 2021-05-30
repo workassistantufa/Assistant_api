@@ -16,6 +16,9 @@ module.exports.dbConfig = {
 };
 */
 
+//jsdoc
+//jsdoc app.js -c out/conf.json -r
+
 
 //sendMail Настройки отправки почты, от имени кого отправлять
 module.exports.sendMail_host = 'smtp.yandex.ru';

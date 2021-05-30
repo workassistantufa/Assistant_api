@@ -13,6 +13,10 @@ app.use(cors());
 const config = require('./config.js');
 const routes = require('./scripts/routes.js');
 
+/**
+ * Метод get для корневого элемента "/". Вызывается routes.get_api.
+ * @function routes.get_api
+ */
 router.get("/", routes.get_api);
 
 router.get("/api", routes.get);
