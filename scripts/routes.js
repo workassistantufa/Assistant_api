@@ -171,9 +171,8 @@ module.exports.migrateDB = async (ctx) => {
     tableModels.push(config.tableList_get());
     tableModels.push(config.columnList_get());
 
-    //Получаем служебные таблицы и добавляем их в tableModels для создания
-    const serviceTables = await serviceTables_get();
-    serviceTables.forEach(row => tableModels.push(row));
+    //Добавляем описание служебных таблицы в tableList и их столбцы в columnList для создания в БД
+    await serviceTables_add();
 
     //Получаем данные о таблицах из tableList
     const _tableModels = await pg.tableInfo();
@@ -279,30 +278,89 @@ async function column_create(db_columnList, tablename, columns) {
  * Собираем данные о служебных таблицах
  * @returns {Object[]} [{tablename, columnList[]}]
  */
-async function serviceTables_get() {
-    let response = [];
-
+async function serviceTables_add() {
     //Узнаём информацию о таблице tablelist в БД
-    const Content = {
+    let Content = {
         Type: 'table',
         Name: 'tablelist'
     };
-    const db_tableInfo = await pg.dbInfo(Content);
-    if (!db_tableInfo.Exists) return response;
+    let db_tableInfo = await pg.dbInfo(Content);
+    if (!db_tableInfo.Exists) return;
 
+    //Узнаём информацию о таблице docdictionary в tablelist
+    let tableInfo = await pg.tableInfo();
+    let haveTable = tableInfo.some(row => row.tablename == 'docdictionary');
     const docDictionary = config.docDictionary_get();
-    response.push({
-        tablename: docDictionary.tablename,
-        columnList: docDictionary.columnList
-    });
+    if (!haveTable) {
+        //Записываем информацию в таблицу tablelist       
+        let columnList = {
+            name: "Типы документов.",
+            tableName: docDictionary.tablename,
+            description: "Справочник типов документов."
+        };
+        await pg.createTable({
+            columnList
+        });
+    } else {
+        const table = tableInfo.find(row => row.tablename == 'docdictionary');
+        const columnListInfo = await pg.columnListInfo({
+            tableID: table.id
+        });
+        for await (const column of docDictionary.columnList) {
+            //Есть ли столбец в таблице
+            const haveColumn = columnListInfo.some(row => row.columnname == column.columnname);
+            if (!haveColumn) {
+                let columnList = {
+                    columnName: column.columnname,
+                    datatype: column.datatype
+                };
+                //console.log('columnList=',columnList,table.id);
+                //Записываем информацию в таблицу columnlist  
+                await pg.createColumn({
+                    columnList,
+                    tableID: table.id
+                });
+            };
+        };
+    }
 
+
+
+    //Узнаём информацию о таблице movement в tablelist
+    tableInfo = await pg.tableInfo();
+    haveTable = tableInfo.some(row => row.tablename == 'movement');
     const movement = config.movement_get();
-    response.push({
-        tablename: movement.tablename,
-        columnList: movement.columnList
-    });
-
-    return response;
+    if (!haveTable) {
+        //Записываем информацию в таблицу tablelist
+        let columnList = {
+            name: "Таблица движения.",
+            tableName: movement.tablename,
+            description: "Таблица движения (изменения аналитик) объектов учёта."
+        };
+        //console.log('columnList=',columnList);
+        const newTable = await pg.createTable({
+            columnList
+        });
+    } else {
+        const table = tableInfo.find(row => row.tablename == 'movement');
+        const columnListInfo = await pg.columnListInfo({
+            tableID: table.id
+        });
+        for await (const column of movement.columnList) {
+            const haveColumn = columnListInfo.some(row => row.columnname == column.columnname);
+            if (!haveColumn) {
+                let columnList = {
+                    columnName: column.columnname,
+                    datatype: column.datatype
+                };
+                //console.log('columnList=',columnList,table.id);
+                await pg.createColumn({
+                    columnList,
+                    tableID: table.id
+                });
+            };
+        };
+    };
 };
 
 module.exports.visualization = async (ctx) => {
@@ -311,7 +369,7 @@ module.exports.visualization = async (ctx) => {
     const treeData = await fs.promises.readFile("./visual/treeData.js");
     const fullTreeScriptLib = await fs.promises.readFile("./visual/fullTreeScriptLib.js");
     ctx.body =
-`<html>
+        `<html>
 <head>
  <meta http-equiv="content-type" content="text/html; charset=utf-8">
  <title>Ассистент сервер</title>

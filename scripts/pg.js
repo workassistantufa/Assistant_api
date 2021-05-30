@@ -262,8 +262,8 @@ async function createTable({
 
         await client.query(query, variable);
 
-        const newDoc = await client.query('SELECT * FROM tablelist WHERE id = $1', [newId]);
-        response = newDoc.rows[0];
+        const newTable = await client.query('SELECT * FROM tablelist WHERE id = $1', [newId]);
+        response = newTable.rows[0];
 
     } catch (error) {
         console.log(error.stack);
@@ -297,13 +297,13 @@ async function createColumn({
         const description = columnList.description ? columnList.description : '';
         const variable = [name, columnName, datatype, description, tableID];
 
-        const query = `INSERT INTO columnList (name, columnName, datatype, description, tableID)
+        const query = `INSERT INTO columnList (name, columnName, datatype, description, tableid)
                         VALUES ($1, $2, $3, $4, $5)`;
 
         await client.query(query, variable);
 
-        const newDoc = await client.query('SELECT * FROM columnList WHERE id = $1', [newId]);
-        response = newDoc.rows[0];
+        const newColumn = await client.query('SELECT * FROM columnList WHERE id = $1', [newId]);
+        response = newColumn.rows[0];
 
     } catch (error) {
         console.log(error.stack);
