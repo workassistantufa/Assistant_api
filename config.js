@@ -68,6 +68,11 @@ module.exports.tableList_get = () => {
     allownull: false,
     default: ' NOW() '
   };
+  //Тип таблицы: Документ(document), Справочник(dictionary)
+  columnList[6] = {
+    columnname: 'type',
+    datatype: 'text',
+  };
   const tablelist = {
     tablename: 'tablelist',
     columnList

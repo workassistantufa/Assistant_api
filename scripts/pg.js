@@ -49,7 +49,7 @@ async function findByID({
  */
 /*
 async function findAll({
-    docID,
+    tableID,
     where
 }) {
     let response = {};
@@ -132,7 +132,8 @@ async function findWithChildren({
  * @returns {Object[]} Возвращает строки таблицы в виде объекта, типа: Ключ - Наименование столбца, значение - Содержимое столбца.
  */
 async function tableInfo({
-    tableID
+    tableID,
+    type
 } = {}) {
     let response = {};
     let res = {};
@@ -141,6 +142,9 @@ async function tableInfo({
         if (tableID) {
             res = await client.query('SELECT * FROM tablelist WHERE id = $1', [tableID]);
             response = res.rows[0];
+        } else if (type) {
+            res = await client.query('SELECT * FROM tablelist WHERE type = $1', [type]);
+            response = res.rows;
         } else {
             res = await client.query('SELECT * FROM tablelist');
             response = res.rows;
@@ -242,23 +246,31 @@ async function create({
  * @param {Object.<string, string>} columnList - значения в новой строке. Ключ - Наименование столбца, значение - Содержимое столбца.
  * @returns {Object.<string, string>} Возвращает новую строку таблицы tablelist в виде объекта, типа: Ключ - Наименование столбца, значение - Содержимое столбца.
  */
-async function createTable({
+async function createTable(
     columnList = {}
-} = {}) {
+) {
     let response = {};
     const client = await pool.connect();
     try {
         const doc = await client.query('SELECT MAX(id) FROM tablelist');
         const newId = doc.rows[0].max ? Number(doc.rows[0].max) + 1 : 1;
         //console.log('newId=', newId);
-        const name = columnList.name ? columnList.name : 'Новый_документ' + newId;
+        let type;
+        let name;
+        if (columnList.type) { //Если явно указан тип таблицы: Документ(document), Справочник(dictionary)
+            type = columnList.type;
+            if (columnList.type == 'document') name = columnList.name ? columnList.name : 'Новый_документ' + newId;
+            if (columnList.type == 'dictionary') name = columnList.name ? columnList.name : 'Новый_справочник' + newId;
+        } else {
+            name = columnList.name ? columnList.name : 'Новая_таблица' + newId;
+        };
         const tableName = columnList.tableName ? columnList.tableName : 'newtable' + newId;
         const description = columnList.description ? columnList.description : '';
         const parent = columnList.parent ? columnList.parent : null;
-        const variable = [name, tableName, description, parent];
+        const variable = [name, tableName, description, parent, type];
 
-        const query = `INSERT INTO tablelist (name, tableName, description, parent)
-                        VALUES ($1, $2, $3, $4)`;
+        const query = `INSERT INTO tablelist (name, tableName, description, parent, type)
+                        VALUES ($1, $2, $3, $4, $5)`;
 
         await client.query(query, variable);
 
@@ -487,13 +499,73 @@ function columnGet(column) {
     return response;
 };
 
+/**
+ * Ищет данные в таблице docdictionary
+ * @param {Bigint} docID id таблицы
+ * @returns {Object.<string, string>} - response.Error или response.rows
+ */
+async function getDocDictionary({
+    docID
+} = {}) {
+    let response = {};
+    let res = {};
+    const client = await pool.connect();
+    try {
+        if (docID) {
+            res = await client.query('SELECT * FROM docdictionary WHERE id = $1', [docID]);
+            response = res.rows[0];
+        } else {
+            res = await client.query('SELECT * FROM docdictionary');
+            response = res.rows;
+        };
+    } catch (error) {
+        console.log(error.stack);
+        response.Error = error.stack;
+    } finally {
+        client.release();
+    };
+    return response;
+};
 
+/**
+ * Создаёт строку в таблице docdictionary
+ * @returns {Object.<string, string>} - response.Error или response.rows
+ */
+async function createDocDictionary({
+    _name,
+    _description
+} = {}) {
+    let response = {};
+    let res = {};
+    const client = await pool.connect();
+    try {
+        const doc = await client.query('SELECT MAX(id) FROM docdictionary');
+        const newId = doc.rows[0].max ? Number(doc.rows[0].max) + 1 : 1;
+
+        const name = _name ? _name : 'Новый_тип_докумена' + newId;
+        const description = _description ? _description : '';
+        const variable = [name, description];
+
+        const query = `INSERT INTO docdictionary (name, description) VALUES ($1, $2)`;
+
+        await client.query(query, variable);
+
+        const newColumn = await client.query('SELECT * FROM docdictionary WHERE id = $1', [newId]);
+        response = newColumn.rows[0];
+    } catch (error) {
+        console.log(error.stack);
+        response.Error = error.stack;
+    } finally {
+        client.release();
+    };
+    return response;
+};
 
 module.exports = {
     //findByID,
     //findAll,
     //create,
-    
+
 
     createTable,
     createColumn,
@@ -501,6 +573,8 @@ module.exports = {
     columnListInfo,
     dbInfo,
     entityChange,
+    getDocDictionary,
+    createDocDictionary
 };
 
 

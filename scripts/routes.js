@@ -33,6 +33,24 @@ module.exports.get = async (ctx) => {
     let response = {};
     let where = {};
 
+    switch (type) {
+        case 'docJournal':
+            response = await pg.getDocDictionary();
+            break;
+
+        case 'dicJournal':
+            response = await pg.tableInfo({
+                type: 'dictionary'
+            });
+            break;
+
+        default:
+            response.Error = 'Error, dont find type';
+            break;
+    };
+
+    //Преобразуем JSON в текст
+    ctx.response.body = JSON.stringify(response);
 
     //response = await pg.create({
     //    docID:1,
@@ -41,16 +59,15 @@ module.exports.get = async (ctx) => {
     //response = await pg.findByID({docID:1,id:3});
 
     //response = await pg.createTable({columnList:{}});
-    response = await pg.createColumn({
-        tableID: 1,
-        columnList: {}
-    });
+    //response = await pg.createColumn({
+    //    tableID: 1,
+    //    columnList: {}
+    //});
 
     //response = await pg.findAll({docID:1});
 
-    //Преобразуем JSON в текст
-    ctx.response.body = JSON.stringify(response);
-    return;
+
+
     /*
         switch (type) {
             case 'documentConstructor':
@@ -97,7 +114,8 @@ module.exports.get = async (ctx) => {
         */
 };
 
-/*
+
+
 module.exports.post = async (ctx) => {
     console.log("post_body:", ctx.request.body);
     let type = ctx.request.body.type; //Тип окна
@@ -106,20 +124,15 @@ module.exports.post = async (ctx) => {
     let response = {};
 
     switch (type) {
-        case 'documentConstructor':
-            response = await prisma.create({
-                docModelName: 'document',
-                docID,
-                docColumns
-            });
+        case 'docJournal':
+            response = await pg.createDocDictionary();
             break;
 
-        case 'documentConstructorColumn':
-            response = await prisma.create({
-                docModelName: 'docColumn',
-                docID,
-                docColumns
-            });
+        case 'dic':
+            const columnList = {
+                type: 'dictionary'
+            };
+            response = await pg.createTable(columnList);
             break;
 
         default:
@@ -129,7 +142,7 @@ module.exports.post = async (ctx) => {
     //console.log('response=', response);
     ctx.response.body = response;
 };
-
+/*
 
 module.exports.delete = async (ctx) => {
     console.log("delete.query:", ctx.query);

@@ -21,7 +21,7 @@ router.get("/", routes.get_api);
 
 router.get("/api", routes.get);
 
-//router.post("/api", routes.post);
+router.post("/api", routes.post);
 
 //router.delete("/api", routes.delete);
 
