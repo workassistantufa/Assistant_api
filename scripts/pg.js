@@ -538,7 +538,7 @@ async function createDocDictionary({
     let response = {};
     let res = {};
     const client = await pool.connect();
-    try {
+    try { 
         const doc = await client.query('SELECT MAX(id) FROM docdictionary');
         const newId = doc.rows[0].max ? Number(doc.rows[0].max) + 1 : 1;
 
