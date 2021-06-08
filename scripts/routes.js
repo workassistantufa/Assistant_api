@@ -180,53 +180,59 @@ module.exports.migrateDB = async (ctx) => {
     let response = {};
     let resp = [];
 
-    let tableModels = [];
-    tableModels.push(config.tableList_get());
-    tableModels.push(config.columnList_get());
+    let schemaModels = [];
+    schemaModels=config.schemaList_get();
 
-    //Добавляем описание служебных таблицы в tableList и их столбцы в columnList для создания в БД
-    await serviceTables_add();
-
-    //Получаем данные о таблицах из tableList
-    const _tableModels = await pg.tableInfo();
-
-    //Добавляем свойства полей из columnList
-    for await (const tableModel of _tableModels) {
-        const columnList = await pg.columnListInfo({
-            tableID: tableModel.id
-        });
-        //console.log('tablename:', tableModel.tablename, 'columnList=',columnList);
-        //Складываем всё в tableModels для создания
-        tableModels.push({
-            tablename: tableModel.tablename,
-            columnList
-        });
-    };
-
-    //console.log('tableModels=',tableModels);
-    //return;
-
-    for await (const tableModel of tableModels) {
-        console.log('tableModel.tablename=', tableModel.tablename);
-        //console.log('tableModel.columnList=', tableModel.columnList);
-
-        //Узнаём  информацию о таблице в БД
-        const Content = {
-            Type: 'table',
-            Name: tableModel.tablename
+    response = await schema_add(schemaModels);
+    /*
+        let tableModels = [];
+        tableModels.push(config.tableList_get());
+        tableModels.push(config.columnList_get());
+    
+        //Добавляем описание служебных таблицы в tableList и их столбцы в columnList для создания в БД
+        await serviceTables_add();
+    
+        //Получаем данные о таблицах из tableList
+        const _tableModels = await pg.tableInfo();
+    
+        //Добавляем свойства полей из columnList
+        for await (const tableModel of _tableModels) {
+            const columnList = await pg.columnListInfo({
+                tableID: tableModel.id
+            });
+            //console.log('tablename:', tableModel.tablename, 'columnList=',columnList);
+            //Складываем всё в tableModels для создания
+            tableModels.push({
+                tablename: tableModel.tablename,
+                columnList
+            });
         };
-        let db_tableInfo = await pg.dbInfo(Content);
-        //console.log('db_tableInfo=', db_tableInfo);
-        //Создаём таблицу
-        response = await table_create(db_tableInfo, tableModel.tablename);
-        resp.push(response);
-
-        //Узнаём  информацию о таблице в БД
-        db_tableInfo = await pg.dbInfo(Content);
-        //Создаём столбцы
-        response = await column_create(db_tableInfo.columnList, tableModel.tablename, tableModel.columnList);
-        resp.push(response);
-    };
+    
+        //console.log('tableModels=',tableModels);
+        //return;
+    
+        for await (const tableModel of tableModels) {
+            console.log('tableModel.tablename=', tableModel.tablename);
+            //console.log('tableModel.columnList=', tableModel.columnList);
+    
+            //Узнаём  информацию о таблице в БД
+            const Content = {
+                Type: 'table',
+                Name: tableModel.tablename
+            };
+            let db_tableInfo = await pg.dbInfo(Content);
+            //console.log('db_tableInfo=', db_tableInfo);
+            //Создаём таблицу
+            response = await table_create(db_tableInfo, tableModel.tablename);
+            resp.push(response);
+    
+            //Узнаём  информацию о таблице в БД
+            db_tableInfo = await pg.dbInfo(Content);
+            //Создаём столбцы
+            response = await column_create(db_tableInfo.columnList, tableModel.tablename, tableModel.columnList);
+            resp.push(response);
+        };
+        */
     //Преобразуем JSON в текст
     ctx.response.body = JSON.stringify(resp);
 };
@@ -374,6 +380,23 @@ async function serviceTables_add() {
             };
         };
     };
+};
+
+async function schema_add(schemaModels = []) {
+    let response = {};
+    for await (const schemaModel of schemaModels) {
+        //Узнаём  информацию о схеме в БД
+        const Content = {
+            Type: 'schema',
+            Name: schemaModel.schemaname
+        };
+        let db_schemaInfo = await pg.dbInfo(Content);
+        console.log('db_schemaInfo=', db_schemaInfo);
+        if(!db_schemaInfo.Exists){
+            response =  await pg.createSchema({Name: schemaModel.schemaname});            
+        }
+    };
+    return response;
 };
 
 module.exports.visualization = async (ctx) => {

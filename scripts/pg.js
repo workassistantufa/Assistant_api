@@ -330,7 +330,7 @@ async function createColumn({
 
 /**
  * Информация о таблице в БД
- * @param {Object.<string, string>} Content - Type: [table, view], Schema, Name, tableID.
+ * @param {Object.<string, string>} Content - Type: [table, view, schema], Schema, Name, tableID.
  * @returns {Object.<string, string>} dbInfo: response.Exists, response.columnList
  */
 async function dbInfo({
@@ -338,6 +338,7 @@ async function dbInfo({
     Schema,
     Name
 } = {}) {
+    console.log('Name=',Name);
     let response = {};
     if (!Type) return response.Error = 'Type is null';
     if (!Name) return response.Error = 'Name is null';
@@ -373,6 +374,26 @@ async function dbInfo({
                     FROM  information_schema.columns 
                     WHERE table_name = $1 `;
                 if (Schema) query = query + ' AND table_schema = $2'
+                resp = await pool.query(query, variable);
+                //console.log('resp=',resp.rows);
+                response.columnList = resp.rows;
+            };
+        };
+
+        if (Type == 'schema') {
+            query = `SELECT EXISTS (
+                        SELECT 1
+                        FROM  information_schema.schemata
+                        WHERE schema_name = $1 )`;
+            resp = await pool.query(query, variable);
+            //console.log('resp=', resp.rows[0]);
+
+            response.Exists = resp.rows[0].exists;
+
+            if (response.Exists) {
+                query = `SELECT schema_name, schema_owner
+                    FROM  information_schema.schemata 
+                    WHERE schema_name = $1 `;
                 resp = await pool.query(query, variable);
                 //console.log('resp=',resp.rows);
                 response.columnList = resp.rows;
@@ -538,7 +559,7 @@ async function createDocDictionary({
     let response = {};
     let res = {};
     const client = await pool.connect();
-    try { 
+    try {
         const doc = await client.query('SELECT MAX(id) FROM docdictionary');
         const newId = doc.rows[0].max ? Number(doc.rows[0].max) + 1 : 1;
 
@@ -561,6 +582,29 @@ async function createDocDictionary({
     return response;
 };
 
+/**
+ * Создаёт строку в таблице docdictionary
+ * @returns {Object.<string, string>} - response.Error или response.rows
+ */
+ async function createSchema({
+    Name
+} = {}){
+    let response = {};
+    let res = {};
+    if (!Name) return response.Error = 'Name is null';
+    const client = await pool.connect();
+    try {
+        response = await client.query('CREATE SCHEMA '+ Name);
+    } catch (error) {
+        console.log(error.stack);
+        response.Error = error.stack;
+    } finally {
+        client.release();
+    };
+    return response;
+};
+
+
 module.exports = {
     //findByID,
     //findAll,
@@ -574,256 +618,6 @@ module.exports = {
     dbInfo,
     entityChange,
     getDocDictionary,
-    createDocDictionary
+    createDocDictionary,
+    createSchema
 };
-
-
-/*
-module.exports.getDocument = async ({
-    docID,
-    id
-}) => {
-    let response;
-    try {
-        let docs = [];
-        const docModel = await prisma.document.findUnique({
-            where: {
-                id: Number(docID),
-            },
-        });
-        //console.log('docModel=', docModel);
-
-        const docModelName = docModel.tableName;
-        if (!id) {
-            docs = await prisma[docModelName].findMany();
-        };
-        console.log('docs=', docs);
-
-        //Преобразуем JSON в текст
-        response = JSON.stringify(resp);
-
-    } catch (error) {
-        console.error(error);
-        response.Error = error;
-    } finally {
-        async () => {
-            await prisma.$disconnect();
-        };
-    };
-};
-
-
-
-module.exports.get = async ( {    docModelName,    where,    columns}) => {
-    let response = {};
-
-    const client = await pool.connect();
-    try {
-        await client.query('BEGIN');
-
-        const queryText = 'SELECT NOW() as now';
-        const res = await client.query(queryText);
-        console.log('res=', res.rows[0]);
-        //const queryText = 'INSERT INTO users(name) VALUES($1) RETURNING id'
-        ///const res = await client.query(queryText, ['brianc'])
-        //const insertPhotoText = 'INSERT INTO photos(user_id, photo_url) VALUES ($1, $2)'
-        ////const insertPhotoValues = [res.rows[0].id, 's3.bucket.foo']
-        //await client.query(insertPhotoText, insertPhotoValues)
-        await client.query('COMMIT');
-    } catch (e) {
-        await client.query('ROLLBACK');
-        throw e;
-    } finally {
-        client.release();
-    };
-     
-    
-    
-    
-    
-    try {
-        let docs = [];
-        if (where && columns) {
-            docs = await prisma[docModelName].findMany({
-                where,
-                select: columns
-            });
-        } else if (where) {
-            docs = await prisma[docModelName].findMany({
-                where
-            });
-        } else if (columns) {
-            docs = await prisma[docModelName].findMany({
-                select: columns
-            });
-        } else docs = await prisma[docModelName].findMany();
-
-        // console.dir(docs, {depth: null});
-
-        let resp = []
-        docs.forEach((row) => {
-            resp.push( //Собираем в массив объектов
-                Object.fromEntries( // преобразовать в массив, затем map, затем fromEntries обратно объект
-                    Object.entries(row).map(([key, value]) => [key, value ? value.toString() : value]) // Значения превращаем в строку .toString()
-                ))
-        });
-
-        //console.log('resp=', resp);
-        response = resp;
-
-
-    } catch (error) {
-        console.error(error);
-        response.Error = error;
-    } finally {
-        async () => {
-            await prisma.$disconnect();
-        };
-    };
-
-    return response;
-};
-*/
-/*
-module.exports.create = async ({
-    docModelName,
-    docID,
-    docColumns
-}) => {
-    let response = {};
-    let _data = {};
-
-    //console.log('docColumns=',docColumns);
-    try {
-        if (docModelName == 'document') {
-            if (!docColumns) {
-                //Ищем максимальный id
-                const getMaxId = await prisma.document.findMany({
-                    take: 1,
-                    orderBy: {
-                        id: "desc"
-                    }
-                });
-
-                const maxId = (Number(getMaxId[0] ? getMaxId[0].id : 0) + 1).toString();
-
-                _data = {
-                    name: 'Новый документ' + maxId,
-                    tableName: 'newTable' + maxId,
-                    createdAt: new Date()
-                };
-
-                let resp = await prisma[docModelName].create({
-                    data: _data
-                });
-            } else {
-                for (const row of docColumns) {
-                    _data = {
-                        name: row.name,
-                        tableName: row.tableName,
-                        description: row.description,
-                        parent: row.parent ? Number(row.parent) : null
-                    };
-                    //console.log('_data=', _data);
-                    let resp = await prisma.document.update({
-                        where: {
-                            id: Number(row.id)
-                        },
-                        data: _data
-                    });
-                    //console.log('resp=', resp);
-                };
-            };
-        };
-
-        if (docModelName == 'docColumn') {
-            //Дообогащаем объект _data
-            //Object.keys(data).forEach((key) => _data[key] = data[key]);
-            //console.log('_data=', _data);
-
-            //Ищем максимальный id
-            if (!docColumns) {
-                const getMaxId = await prisma.docColumn.findMany({
-                    take: 1,
-                    orderBy: {
-                        id: "desc"
-                    }
-                });
-
-                const maxId = (Number(getMaxId[0] ? getMaxId[0].id : 0) + 1).toString();
-
-                _data = {
-                    name: 'Новое поле' + maxId,
-                    columnName: 'newColumn' + maxId,
-                    dataTypes: 'String',
-                    createdAt: new Date(),
-                    documentID: Number(docID)
-                };
-                const resp = await prisma.docColumn.create({
-                    data: _data
-                });
-                //console.log('resp=', resp);
-            } else {
-                for (const row of docColumns) {
-                    _data = {
-                        name: row.name,
-                        columnName: row.columnName,
-                        dataTypes: row.dataTypes,
-                        description: row.description,
-                        documentID: Number(docID)
-                    };
-                    //console.log('_data=', _data);
-                    let resp = await prisma.docColumn.update({
-                        where: {
-                            id: Number(row.id)
-                        },
-                        data: _data
-                    });
-                    //console.log('resp=', resp);
-                };
-            };
-        };
-
-    } catch (error) {
-        console.error(error);
-        response.Error = error;
-    } finally {
-        async () => {
-            await prisma.$disconnect();
-        };
-    };
-
-    return response;
-};
-
-module.exports.delete = async ({
-    docModelName,
-    docID,
-    id
-}) => {
-    let response = {};
-    //Превращаем в массив
-    const arrID = id.split(',');
-
-    try {
-        for (const _id of arrID) {
-            //console.log('_id=', _id);
-            const del = await prisma[docModelName].delete({
-                where: {
-                    id: Number(_id)
-                },
-            });
-            console.log('del=', del);
-        };
-    } catch (error) {
-        console.error(error);
-        response.Error = error;
-    } finally {
-        async () => {
-            await prisma.$disconnect();
-        };
-    };
-    return response;
-};
-
-*/

@@ -9,6 +9,15 @@ module.exports.dbConfig = {
   port: 5432,
 }
 
+module.exports.dbConfig = {
+  user: 'postgres',
+  host: 'localhost',
+  database: 'postgres',
+  password: 'assistant',
+  port: 5432,
+}
+
+
 //Подключение к БД sqlite3/main.db Windows
 /*module.exports.dbConfig = {
     dialect: 'sqlite',
@@ -34,6 +43,24 @@ module.exports.bot_token = '1428565883:AAEaSPndJe4RC3-dF-YQ-lsYTfX_1I7IYQ8';
 module.exports.kdinar_chat_id = '400738545';
 //Группа Башпринт Ассистент
 module.exports.group_chat_id = '-431221987';
+
+module.exports.schemaList_get = () => {
+  let schemaList = [];
+  schemaList[0] = {
+    schemaname: 'useradmin',
+    description: 'Модуль администрирования пользователей'
+  };
+  schemaList[1] = {
+    schemaname: 'sklad',
+    description: 'Модуль складского учета '
+  };
+  schemaList[2] = {
+    schemaname: 'market',
+    description: 'Модуль интернет-магазина'
+  };
+
+  return schemaList;
+};
 
 module.exports.tableList_get = () => {
   let columnList = [];
