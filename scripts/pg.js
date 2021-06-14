@@ -2,6 +2,7 @@ const {
     Pool
 } = require('pg');
 const config = require('.././config.js');
+const Column = require('./../assistant_modules/column.js');
 const pool = new Pool(config.dbConfig);
 
 /**
@@ -488,31 +489,28 @@ function columnGet(column) {
     let response = {};
     if (!column) return response.Error = 'columnList is null';
 
-    const columnname = column.columnname;
-    if (!columnname) return response.Error = 'columnname is null';
+    const columnname = column.ColumnName;
+    if (!columnname) return response.Error = 'ColumnName is null';
 
-    const datatype = column.datatype;
-    if (!datatype) return response.Error = 'datatype is null';
+    const datatype = column.DataType;
+    if (!datatype) return response.Error = 'DataType is null';
 
     let allowNull = 'true'; // По умолчанию true
-    if (column.allownull === undefined) allowNull = 'true'
-    else if (!column.allownull) allowNull = 'false';
-    if (allowNull == 'false') allowNull = ' NOT NULL '
+    if (column.AllowNull == 'false') allowNull = ' NOT NULL '
     else allowNull = ' NULL ';
 
-    let _default = column.default ? 'default ' + column.default : '';
+
+    let _default = column.Default;
 
     let unique = 'false'; //По умолчанию false
-    if (column.unique === undefined) unique = 'false'
-    else if (column.unique) unique = 'true';
-    if (unique == 'true') unique = ' UNIQUE '
+    if (column.Unique == 'true') unique = ' UNIQUE '
     else unique = '';
 
     unique = _default ? '' : unique; //Поля взаимоисключающие
 
     let references = ' ';
-    if (column.references) {
-        references = ' REFERENCES ' + column.references + ' ';
+    if (column.References != '') {
+        references = ' REFERENCES ' + column.References + ' ';
         allowNull = '';
         _default = '';
         unique = '';

@@ -12,32 +12,17 @@ let TableList = class {
         this.TableName = 'tableList';
     }
     columnList_get() {
-        let columnList = [];
-        columnList[0] = {
-            columnname: 'name',
-            datatype: 'text',
-            allownull: false
-        };
-        columnList[1] = {
-            columnname: 'tablename',
-            datatype: 'text',
-            allownull: false,
-            unique: true
-        };
-        columnList[2] = {
-            columnname: 'description',
-            datatype: 'text',
-        };
-        columnList[3] = {
-            columnname: 'parent',
-            datatype: 'bigint',
-        };
-        //Тип таблицы: Документ(document), Справочник(dictionary)
-        columnList[4] = {
-            columnname: 'type',
-            datatype: 'text',
-        };
-        return columnList;
+        const Name = new Column.Name();
+        Name.AllowNull = 'false';
+
+        const TableName = new Column.TableName();
+        TableName.AllowNull = 'false';
+
+        const Description = new Column.Description();
+        const Parent = new Column.Parent();
+        const Type = new Column.Type();
+
+        return [Name, TableName, Description, Parent, Type];
     }
 };
 
@@ -46,33 +31,22 @@ let СolumnList = class {
         this.TableName = 'columnList';
     }
     columnList_get() {
-        let columnList = [];
-        columnList[0] = {
-            columnname: 'name',
-            datatype: 'text',
-            allownull: false
-        };
-        columnList[1] = {
-            columnname: 'columnname',
-            datatype: 'text',
-            allownull: false
-        };
-        columnList[2] = {
-            columnname: 'datatype',
-            datatype: 'text',
-            allownull: false
-        };
-        columnList[3] = {
-            columnname: 'description',
-            datatype: 'text',
-        };
-        columnList[4] = {
-            columnname: 'tableID',
-            datatype: 'bigserial',
-            allownull: false,
-            references: 'tablelist (id)'
-        };
-        return columnList;
+        const Name = new Column.Name();
+        Name.AllowNull = 'false';
+
+        const ColumnName = new Column.ColumnName();
+        ColumnName.AllowNull = 'false';
+
+        const DataType = new Column.DataType();
+        DataType.AllowNull = 'false';
+
+        const Description = new Column.Description();
+
+        const TableID = new Column.TableID();
+        TableID.AllowNull = 'false';
+        TableID.References = 'tableList (id)';
+
+        return [Name, ColumnName, DataType, Description, TableID];
     }
 };
 

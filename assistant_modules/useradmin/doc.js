@@ -1,4 +1,4 @@
-let Invoice = class {
+/*let Invoice = class {
     constructor() {
         this.TableName = 'Invoice';
     }
@@ -32,3 +32,4 @@ module.exports = {
     Invoice,
     Dogovor
 };
+*/

@@ -1,19 +1,19 @@
-let City = class {
+const Column = require('./../column.js');
+
+const City = class {
     constructor() {
         this.TableName = 'City';
     }
     columnList_get() {
-        let columnList = [];
-        columnList[0] = {
-            columnname: 'Name',
-            datatype: 'text',
-            allownull: false
-        };
+        const Name = new Column.Name();
+        //Name.AllowNull = 'false';
+        const columnList = [Name];
+
         return columnList;
     }
 };
 
-let House = class {
+const House = class {
     constructor() {
         this.TableName = 'House';
     }
@@ -29,6 +29,5 @@ let House = class {
 };
 
 module.exports = {
-    City,
-    House
+    City
 };

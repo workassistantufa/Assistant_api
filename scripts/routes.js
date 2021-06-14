@@ -187,6 +187,7 @@ module.exports.migrateDB = async (ctx) => {
     let assistant_modules = config.assistant_modules;
 
     for await (const module of assistant_modules) {
+        
         //Перебираем объекты из файла модуля schema.js
         const {
             Schema,
@@ -497,6 +498,7 @@ async function column_add(tableModels = []) {
     for await (const tableModel of tableModels) {
         //Узнаём информацию какие столбцы надо создать
         const columnList_needAdd = tableModel.Table.columnList_get();
+        
         //Узнаём  информацию о таблице в БД и о её полях
         const Content = {
             Type: 'table',
@@ -508,7 +510,7 @@ async function column_add(tableModels = []) {
 
         for await (const column of columnList_needAdd) {
             //Есть ли столбец в таблице в БД
-            const haveColumn = db_tableInfo.columnList.some(row => row.column_name == column.columnname);
+            const haveColumn = db_tableInfo.columnList.some(row => row.column_name == column.ColumnName);
             //Если столбца в таблице в БД нет - добавляем
             if (!haveColumn) columnList.push(column);
         };
@@ -524,6 +526,7 @@ async function column_add(tableModels = []) {
         response = await pg.entityChange(Entity);
         resp.push(response);
     };
+    
     return response = resp;
 };
 
