@@ -338,14 +338,13 @@ async function dbInfo({
     Schema,
     Name
 } = {}) {
-    console.log('Name=',Name);
     let response = {};
     if (!Type) return response.Error = 'Type is null';
     if (!Name) return response.Error = 'Name is null';
 
-    let variable = [];
-    if (Schema) variable = [Name, Schema]
-    else variable = [Name];
+    //let variable = [];
+    //if (Schema) variable = [ Schema.toString(), Name.toString()]
+    //else variable = [Name.toString()];
     let query = '';
     let resp = {};
 
@@ -353,18 +352,16 @@ async function dbInfo({
 
     try {
         if (Type == 'table') {
+            if (!Schema) return response.Error = 'Schema is null';
+
             query = `SELECT EXISTS (
                 SELECT 1
                 FROM  information_schema.tables
-                WHERE table_name = $1 `;
-            if (Schema) query = query + ' AND table_schema = $2 '
-            query = query + ')';
-            //console.log('query=',query, Name);
+                WHERE table_schema  = '` + Schema.toString() + `' 
+                AND table_name = '` + Name.toString() + `')`;
+            //console.log('query=', query, Name);
 
-            //resp = await pool.query('SELECT * FROM  information_schema.tables');
-            //console.log('resp=', resp.rows);
-
-            resp = await pool.query(query, variable);
+            resp = await pool.query(query);
             //console.log('resp=', resp.rows[0]);
 
             response.Exists = resp.rows[0].exists;
@@ -372,9 +369,9 @@ async function dbInfo({
             if (response.Exists) {
                 query = `SELECT column_name, column_default, is_nullable, data_type
                     FROM  information_schema.columns 
-                    WHERE table_name = $1 `;
-                if (Schema) query = query + ' AND table_schema = $2'
-                resp = await pool.query(query, variable);
+                    WHERE table_schema = '` + Schema.toString() + `' 
+                      AND table_name = '` + Name.toString() + `'`;
+                resp = await pool.query(query);
                 //console.log('resp=',resp.rows);
                 response.columnList = resp.rows;
             };
@@ -384,8 +381,9 @@ async function dbInfo({
             query = `SELECT EXISTS (
                         SELECT 1
                         FROM  information_schema.schemata
-                        WHERE schema_name = $1 )`;
-            resp = await pool.query(query, variable);
+                        WHERE schema_name = '` + Name.toString() + `')`;
+            //console.log('query=', query);
+            resp = await pool.query(query);
             //console.log('resp=', resp.rows[0]);
 
             response.Exists = resp.rows[0].exists;
@@ -393,8 +391,8 @@ async function dbInfo({
             if (response.Exists) {
                 query = `SELECT schema_name, schema_owner
                     FROM  information_schema.schemata 
-                    WHERE schema_name = $1 `;
-                resp = await pool.query(query, variable);
+                    WHERE schema_name = '` + Name.toString() + `'`;
+                resp = await pool.query(query);
                 //console.log('resp=',resp.rows);
                 response.columnList = resp.rows;
             };
@@ -418,13 +416,15 @@ async function dbInfo({
  */
 async function entityChange({
     Type,
+    Schema,
     Name,
     Method,
     columnList
 } = {}) {
     let response = {};
-    let resp = {};
+    let resp = [];
     let query = '';
+    if (!Schema) return response.Error = 'Schema is null';
     if (!Name) return response.Error = 'Name is null';
 
     const client = await pool.connect();
@@ -434,9 +434,14 @@ async function entityChange({
 
         if (Method == 'create') {
             if (Type == 'table') {
-                query = 'CREATE TABLE ' + Name + ' ( id BIGSERIAL PRIMARY KEY )';
-                resp = await pool.query(query);
-                //console.log('resp=', resp);
+                query = 'CREATE TABLE "' + Schema.toString() + '"."' + Name.toString() + '"';
+                query = query + ' ( id BIGSERIAL PRIMARY KEY ';
+                query = query + ', rct TIMESTAMP NOT NULL DEFAULT NOW()';
+                query = query + ', rut TIMESTAMP NOT NULL DEFAULT NOW()';
+                query = query + ', rcu VARCHAR(100) NOT NULL DEFAULT USER';
+                query = query + ', ruu VARCHAR(100) NOT NULL DEFAULT USER';
+                query = query + ')';
+                await pool.query(query);
                 response.Message = 'SUCCESSFULLY: ' + query;
             };
         };
@@ -447,12 +452,12 @@ async function entityChange({
                     for await (const column of columnList) {
                         const _columnGet = columnGet(column);
                         if (_columnGet.Error) throw new UserException(_columnGet.Error);
-                        query = 'ALTER TABLE ' + Name + ' ADD COLUMN ' + _columnGet.column;
-                        console.log('query=', query);
-                        resp = await pool.query(query);
-                        //console.log('resp=', resp);
-                        response.Message = 'SUCCESSFULLY: ' + query;
+                        query = 'ALTER TABLE "' + Schema.toString() + '"."' + Name.toString() + '" ADD COLUMN ' + _columnGet.column;
+                        //console.log('query=', query);
+                        await pool.query(query);
+                        resp.push(query);
                     };
+                    response.Message = 'SUCCESSFULLY: ' + resp;
                 };
             };
         };
@@ -513,7 +518,7 @@ function columnGet(column) {
         unique = '';
     };
 
-    const query = columnname + ' ' + datatype + references + allowNull + unique + _default;
+    const query = '"' + columnname + '" ' + datatype + references + allowNull + unique + _default;
     //console.log('query=', query);
     response.column = query;
 
@@ -586,15 +591,14 @@ async function createDocDictionary({
  * Создаёт строку в таблице docdictionary
  * @returns {Object.<string, string>} - response.Error или response.rows
  */
- async function createSchema({
+async function createSchema({
     Name
-} = {}){
+} = {}) {
     let response = {};
-    let res = {};
     if (!Name) return response.Error = 'Name is null';
     const client = await pool.connect();
     try {
-        response = await client.query('CREATE SCHEMA '+ Name);
+        response = await client.query('CREATE SCHEMA "' + Name.toString() + '"');
     } catch (error) {
         console.log(error.stack);
         response.Error = error.stack;

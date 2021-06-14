@@ -33,24 +33,28 @@ module.exports.get = async (ctx) => {
     let response = {};
     let where = {};
 
-    switch (type) {
-        case 'docJournal':
-            response = await pg.getDocDictionary();
-            break;
-
-        case 'dicJournal':
-            response = await pg.tableInfo({
-                type: 'dictionary'
-            });
-            break;
-
-        default:
-            response.Error = 'Error, dont find type';
-            break;
-    };
 
     //Преобразуем JSON в текст
     ctx.response.body = JSON.stringify(response);
+    /*
+        switch (type) {
+            case 'docJournal':
+                response = await pg.getDocDictionary();
+                break;
+
+            case 'dicJournal':
+                response = await pg.tableInfo({
+                    type: 'dictionary'
+                });
+                break;
+
+            default:
+                response.Error = 'Error, dont find type';
+                break;
+        };
+    */
+    //response = await pg.createTable({columnList:{}});
+
 
     //response = await pg.create({
     //    docID:1,
@@ -58,7 +62,7 @@ module.exports.get = async (ctx) => {
     //});
     //response = await pg.findByID({docID:1,id:3});
 
-    //response = await pg.createTable({columnList:{}});
+
     //response = await pg.createColumn({
     //    tableID: 1,
     //    columnList: {}
@@ -180,59 +184,92 @@ module.exports.migrateDB = async (ctx) => {
     let response = {};
     let resp = [];
 
-    let schemaModels = [];
-    schemaModels=config.schemaList_get();
+    let assistant_modules = config.assistant_modules;
 
-    response = await schema_add(schemaModels);
-    /*
-        let tableModels = [];
-        tableModels.push(config.tableList_get());
-        tableModels.push(config.columnList_get());
-    
-        //Добавляем описание служебных таблицы в tableList и их столбцы в columnList для создания в БД
-        await serviceTables_add();
-    
-        //Получаем данные о таблицах из tableList
-        const _tableModels = await pg.tableInfo();
-    
-        //Добавляем свойства полей из columnList
-        for await (const tableModel of _tableModels) {
-            const columnList = await pg.columnListInfo({
-                tableID: tableModel.id
-            });
-            //console.log('tablename:', tableModel.tablename, 'columnList=',columnList);
-            //Складываем всё в tableModels для создания
-            tableModels.push({
-                tablename: tableModel.tablename,
-                columnList
-            });
-        };
-    
-        //console.log('tableModels=',tableModels);
-        //return;
-    
-        for await (const tableModel of tableModels) {
-            console.log('tableModel.tablename=', tableModel.tablename);
-            //console.log('tableModel.columnList=', tableModel.columnList);
-    
-            //Узнаём  информацию о таблице в БД
-            const Content = {
-                Type: 'table',
-                Name: tableModel.tablename
-            };
-            let db_tableInfo = await pg.dbInfo(Content);
-            //console.log('db_tableInfo=', db_tableInfo);
-            //Создаём таблицу
-            response = await table_create(db_tableInfo, tableModel.tablename);
+    for await (const module of assistant_modules) {
+        //Перебираем объекты из файла модуля schema.js
+        const {
+            Schema,
+            TableList,
+            СolumnList
+        } = require('./../assistant_modules/' + module + '/schema.js');
+
+        //Добавляем новую схему
+        const schema = new Schema();
+        response = await schema_add([schema]);
+        resp.push(response);
+
+        //Добавляем таблицу tableList в новой схеме
+        const tableList = new TableList();
+        response = await table_add([{
+            Schema: schema,
+            Table: tableList
+        }]);
+        resp.push(response);
+
+        //Добавляем столбцы таблицы tableList в новой схеме        
+        response = await column_add([{
+            Schema: schema,
+            Table: tableList
+        }]);
+        resp.push(response);
+
+        //Добавляем таблицу columnList в новой схеме
+        const columnList = new СolumnList();
+        response = await table_add([{
+            Schema: schema,
+            Table: columnList
+        }]);
+        resp.push(response);
+
+        //Добавляем столбцы таблицы columnList в новой схеме        
+        response = await column_add([{
+            Schema: schema,
+            Table: columnList
+        }]);
+        resp.push(response);
+
+        //Перебираем объекты из файла модуля dic.js
+        const dictionaryModels = require('./../assistant_modules/' + module + '/dic.js');
+        const dicList = Object.keys(dictionaryModels);
+        for await (const dicModel of dicList) {
+            //Добавляем таблицу справочника в новой схеме
+            const dic = new dictionaryModels[dicModel]();
+            response = await table_add([{
+                Schema: schema,
+                Table: dic
+            }]);
             resp.push(response);
-    
-            //Узнаём  информацию о таблице в БД
-            db_tableInfo = await pg.dbInfo(Content);
-            //Создаём столбцы
-            response = await column_create(db_tableInfo.columnList, tableModel.tablename, tableModel.columnList);
+
+            //Добавляем столбцы справочника в новой схеме        
+            response = await column_add([{
+                Schema: schema,
+                Table: dic
+            }]);
             resp.push(response);
         };
-        */
+
+        //Перебираем объекты из файла модуля doc.js
+        const documentModels = require('./../assistant_modules/' + module + '/doc.js');
+        const docList = Object.keys(documentModels);
+        for await (const docModel of docList) {
+            //Добавляем таблицу справочника в новой схеме
+            const doc = new documentModels[docModel]();
+            response = await table_add([{
+                Schema: schema,
+                Table: doc
+            }]);
+            resp.push(response);
+
+            //Добавляем столбцы справочника в новой схеме        
+            response = await column_add([{
+                Schema: schema,
+                Table: doc
+            }]);
+            resp.push(response);
+        };
+    };
+
     //Преобразуем JSON в текст
     ctx.response.body = JSON.stringify(resp);
 };
@@ -243,7 +280,7 @@ module.exports.migrateDB = async (ctx) => {
  * @param {string} tablename - наименование таблицы.
  * @returns {Object.<string, string>} - информация: Message или Error.
  */
-async function table_create(db_tableInfo, tablename) {
+/*async function table_create(db_tableInfo, tablename) {
     let response = {};
 
     //Если таблицы нет - создаём
@@ -259,7 +296,7 @@ async function table_create(db_tableInfo, tablename) {
     };
     return response;
 }
-
+*/
 /**
  * Создание столбца таблицы в БД если её нет
  * @param {Object[]} db_columnList - имеющаяся информация о таблице в БД.
@@ -267,6 +304,7 @@ async function table_create(db_tableInfo, tablename) {
  * @param {Object[]}  columns - свойства столбцов.
  * @returns {Object[]} - информация: Message или Error.
  */
+/*
 async function column_create(db_columnList, tablename, columns) {
     let response = {};
     let resp = [];
@@ -292,11 +330,12 @@ async function column_create(db_columnList, tablename, columns) {
     };
     return response = resp;
 };
-
+*/
 /**
  * Собираем данные о служебных таблицах
  * @returns {Object[]} [{tablename, columnList[]}]
  */
+/*
 async function serviceTables_add() {
     //Узнаём информацию о таблице tablelist в БД
     let Content = {
@@ -381,22 +420,111 @@ async function serviceTables_add() {
         };
     };
 };
-
+*/
+/**
+ * Проверка наличия в БД схемы и создание её при отсутствии
+ * @param {Object[]} schemaModels объект класса Schema 
+ * @returns {Object.<string, string>} - информация: Message или Error.
+ */
 async function schema_add(schemaModels = []) {
     let response = {};
+    let resp = [];
+
     for await (const schemaModel of schemaModels) {
         //Узнаём  информацию о схеме в БД
         const Content = {
             Type: 'schema',
-            Name: schemaModel.schemaname
+            Name: schemaModel.SchemaName
         };
-        let db_schemaInfo = await pg.dbInfo(Content);
-        console.log('db_schemaInfo=', db_schemaInfo);
-        if(!db_schemaInfo.Exists){
-            response =  await pg.createSchema({Name: schemaModel.schemaname});            
-        }
+        const db_schemaInfo = await pg.dbInfo(Content);
+        //console.log('db_schemaInfo=', db_schemaInfo);
+        //Еслисхемы нет - создаём
+        if (!db_schemaInfo.Exists) {
+            response = await pg.createSchema({
+                Name: schemaModel.SchemaName
+            });
+            resp.push(response);
+        };
+    };
+    return response = resp;
+};
+
+/**
+ * Создание таблицы в БД если её нет
+ * @param {Object[]} tableModels - объекты классов Schema и Table
+ * @returns {Object.<string, string>} - информация: Message или Error.
+ */
+async function table_add(tableModels = []) {
+    let response = {};
+    let resp = [];
+
+    for await (const tableModel of tableModels) {
+        //Узнаём  информацию о таблице в БД
+        const Content = {
+            Type: 'table',
+            Schema: tableModel.Schema.SchemaName,
+            Name: tableModel.Table.TableName
+        };
+        const db_tableInfo = await pg.dbInfo(Content);
+        //console.log('db_tableInfo=',db_tableInfo);
+
+        //Если таблицы нет - создаём
+        if (!db_tableInfo.Exists) {
+            const Entity = {
+                Type: 'table',
+                Schema: tableModel.Schema.SchemaName,
+                Name: tableModel.Table.TableName,
+                Method: 'create'
+            };
+            response = await pg.entityChange(Entity);
+            //console.log('response=', response);
+            resp.push(response);
+        };
     };
     return response;
+};
+
+/**
+ * Создание столбцы таблицы в БД если их нет
+ * @param {Object[]} tableModels - объекты классов Schema и Table
+ * @returns {Object.<string, string>} - информация: Message или Error.
+ */
+async function column_add(tableModels = []) {
+    let response = {};
+    let resp = [];
+    let columnList = [];
+
+    for await (const tableModel of tableModels) {
+        //Узнаём информацию какие столбцы надо создать
+        const columnList_needAdd = tableModel.Table.columnList_get();
+        //Узнаём  информацию о таблице в БД и о её полях
+        const Content = {
+            Type: 'table',
+            Schema: tableModel.Schema.SchemaName,
+            Name: tableModel.Table.TableName
+        };
+        const db_tableInfo = await pg.dbInfo(Content);
+        //console.log('db_tableInfo=',db_tableInfo);
+
+        for await (const column of columnList_needAdd) {
+            //Есть ли столбец в таблице в БД
+            const haveColumn = db_tableInfo.columnList.some(row => row.column_name == column.columnname);
+            //Если столбца в таблице в БД нет - добавляем
+            if (!haveColumn) columnList.push(column);
+        };
+
+        const Entity = {
+            Type: 'table',
+            Method: 'alter',
+            Schema: tableModel.Schema.SchemaName,
+            Name: tableModel.Table.TableName,
+            columnList: columnList
+        };
+        //console.log('Entity=',Entity);
+        response = await pg.entityChange(Entity);
+        resp.push(response);
+    };
+    return response = resp;
 };
 
 module.exports.visualization = async (ctx) => {

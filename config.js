@@ -9,13 +9,8 @@ module.exports.dbConfig = {
   port: 5432,
 }
 
-module.exports.dbConfig = {
-  user: 'postgres',
-  host: 'localhost',
-  database: 'postgres',
-  password: 'assistant',
-  port: 5432,
-}
+//Список подключенных модулей 
+module.exports.assistant_modules = ['useradmin'];
 
 
 //Подключение к БД sqlite3/main.db Windows
@@ -43,6 +38,20 @@ module.exports.bot_token = '1428565883:AAEaSPndJe4RC3-dF-YQ-lsYTfX_1I7IYQ8';
 module.exports.kdinar_chat_id = '400738545';
 //Группа Башпринт Ассистент
 module.exports.group_chat_id = '-431221987';
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 module.exports.schemaList_get = () => {
   let schemaList = [];
@@ -229,4 +238,3 @@ module.exports.movement_get = () => {
   };
   return tablelist;
 };
-
