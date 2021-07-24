@@ -4,6 +4,7 @@ const util = require('util');
 const exec = util.promisify(require('child_process').exec);
 const config = require('.././config.js');
 
+
 /**
  * route module.
  * @module route
@@ -28,115 +29,141 @@ module.exports.get_api = (ctx) => {
 module.exports.get = async (ctx) => {
     console.log('get.query=', ctx.query);
     let type = ctx.query.type; //Тип окна
-    let docID = ctx.query.docID; //id таблицы Documents
-    let id = ctx.query.id; //id таблицы
+    let tableID = ctx.query.tableID; //id таблицы tableList
+    let id = ctx.query.id; //id строки таблицы
     let response = {};
     let where = {};
 
+    //let module = 'useradmin';
+    //const dictionaryModels = require('./../assistant_modules/' + module + '/dic.js');
+    //const {id} = require('./../assistant_modules/column.js');
+    //const dicList = Object.keys(dictionaryModels);
+    //Object.assign(User.prototype, id);
+    //let resp = new dictionaryModels.User({id:1,Name:'first'});
+    //resp.Name.Default = 3;
+    //resp.Name.AllowNull = 'aa'
+    //console.log('resp.Name.Default=',resp.Name.Default);
+    //response = resp;
+
+    //console.log('response=',response);
+
+    //console.log('dicList=',dictionaryModels.User);
+    //type = 'dicJournal';
+    //let TableName = 'User';
+    //id = 0; //реестр
+
+    switch (type) {
+        case 'dicJournal':
+            response = await dicJournal_get();
+            break;
+
+        case 'dic':
+            response = await dicList_get({
+                TableName,
+                id
+            });
+            break;
+
+        default:
+            response.Error = 'Error, dont find type';
+            break;
+    };
 
     //Преобразуем JSON в текст
     ctx.response.body = JSON.stringify(response);
-    /*
-        switch (type) {
-            case 'docJournal':
-                response = await pg.getDocDictionary();
-                break;
-
-            case 'dicJournal':
-                response = await pg.tableInfo({
-                    type: 'dictionary'
-                });
-                break;
-
-            default:
-                response.Error = 'Error, dont find type';
-                break;
-        };
-    */
-    //response = await pg.createTable({columnList:{}});
-
-
-    //response = await pg.create({
-    //    docID:1,
-    //    docColumn: {newcolumn1:'newcolumn1',newcolumn3:'newcolumn3'}
-    //});
-    //response = await pg.findByID({docID:1,id:3});
-
-
-    //response = await pg.createColumn({
-    //    tableID: 1,
-    //    columnList: {}
-    //});
-
-    //response = await pg.findAll({docID:1});
-
-
-
-    /*
-        switch (type) {
-            case 'documentConstructor':
-                if (docID) where.id = Number(docID);
-                response = await prisma.get({
-                    docModelName: 'document',
-                    where
-                });
-                break;
-
-            case 'documentConstructorColumn':
-                where.documentID = Number(docID);
-                response = await prisma.get({
-                    docModelName: 'docColumn',
-                    where
-                });
-                break;
-
-            case 'docJournal':
-                let columns = {
-                    id: true,
-                    name: true
-                };
-                response = await prisma.get({
-                    docModelName: 'document',
-                    columns
-                });
-                break;
-
-            case 'document':
-                response = await prisma.getDocument({
-                    docID,
-                    id
-                });
-                console.log('response=', response);
-                break;
-
-            default:
-                response.Error = 'Error, dont find type';
-                break;
-        };
-        //Преобразуем JSON в текст
-        ctx.response.body = JSON.stringify(response);
-        */
 };
 
+/**
+ * Список доступных справочников
+ * @param {Object.<string, string>} module наименование модуля 
+ * @returns {Object.<string, string>} [{Name,Description}]
+ */
+async function dicJournal_get({
+    module = 'useradmin'
+} = {}) {
+    let response = {};
+    let resp = [];
+    //Перебираем объекты из файла модуля dic.js
+    const dictionaryModels = require('./../assistant_modules/' + module + '/dic.js');
+    const dicList = Object.keys(dictionaryModels);
+    let id = 0;
+    for await (const dicModel of dicList) {
+        const dic = new dictionaryModels[dicModel]({
+            id: 1
+        });
+        let obj = {};
+        obj.id = id;
+        obj.Name = dic.DicDescription;
+        obj.Description = dic.TableName;
+        
+        resp.push(obj);
+        id = id + 1;
+    };
+    return response = resp;
+};
 
+/**
+ * Значения справочника
+ * @param {Object.<string, string>} module наименование модуля 
+ * @returns {Object.<string, string>} [{Name,Description}]
+ */
+async function dicList_get({
+    TableName,
+    id = 0,
+    module = 'useradmin'
+} = {}) {
+    let response = {};
+    let data = [];
+
+    const dictionaryModels = require('./../assistant_modules/' + module + '/dic.js');
+    const dicList = Object.keys(dictionaryModels);
+    //Если такой Модели - Таблицы нет в модуле
+    if (!dicList.some(row => TableName)) return response.Error = 'Error, dont find table';
+        
+    const dicModel = new dictionaryModels[TableName]({
+        id: 1
+    });
+    //console.log('dicModel=', dicModel);
+    const ColumnList = dicModel.ColumnList;
+    //console.log('ColumnList=', ColumnList); 
+
+    if (id == 0) { //Реестр справочника                   
+        data = await pg.findAll({
+            Schema: module,
+            TableName,
+            ColumnList
+        });
+        
+    } else if (id > 0) {
+        data = await pg.findByID({
+            Schema: module,
+            TableName,
+            ColumnList,
+            id
+        });
+    }
+    //console.log('data=', data);
+
+    return response = data ? data : [];
+};
 
 module.exports.post = async (ctx) => {
     console.log("post_body:", ctx.request.body);
     let type = ctx.request.body.type; //Тип окна
-    let docID = ctx.request.body.docID; //id таблицы Documents
-    let docColumns = ctx.request.body.docColumns; //{} с полями и их значениями
+    let tableID = ctx.request.body.tableID; //id таблицы tableList
+    let columnList = ctx.request.body.columnList; //{} с полями и их значениями
     let response = {};
 
     switch (type) {
-        case 'docJournal':
-            response = await pg.createDocDictionary();
-            break;
+        //case 'docJournal':
+        //    response = await pg.createDocDictionary();
+        //    break;
 
         case 'dic':
-            const columnList = {
-                type: 'dictionary'
-            };
-            response = await pg.createTable(columnList);
+            response = await createDic({
+                TableID: tableID,
+                columnList
+            });
             break;
 
         default:
@@ -144,8 +171,24 @@ module.exports.post = async (ctx) => {
             break;
     };
     //console.log('response=', response);
-    ctx.response.body = response;
+    //Преобразуем JSON в текст
+    ctx.response.body = JSON.stringify(response);
 };
+
+async function createDic({
+    TableID,
+    columnList
+}) {
+    let response = {};
+    const Content = {
+        Schema: 'useradmin',
+        TableID,
+        columnList
+    };
+    response = await pg.create(Content);
+    return response;
+};
+
 /*
 
 module.exports.delete = async (ctx) => {
@@ -187,7 +230,7 @@ module.exports.migrateDB = async (ctx) => {
     let assistant_modules = config.assistant_modules;
 
     for await (const module of assistant_modules) {
-        
+
         //Перебираем объекты из файла модуля schema.js
         const {
             Schema,
@@ -234,14 +277,33 @@ module.exports.migrateDB = async (ctx) => {
         const dictionaryModels = require('./../assistant_modules/' + module + '/dic.js');
         const dicList = Object.keys(dictionaryModels);
         for await (const dicModel of dicList) {
-            //Добавляем таблицу справочника в новой схеме
+
             const dic = new dictionaryModels[dicModel]();
+            //console.log('dic=',dic);
+
+            //Добавляем таблицу справочника в таблицу tableList
+            response = await tableList_add([{
+                Schema: schema,
+                Table: dic,
+                Type: 'dictionary'
+            }]);
+            resp.push(response);
+
+            //Добавляем таблицу справочника в новой схеме
             response = await table_add([{
                 Schema: schema,
                 Table: dic
             }]);
             resp.push(response);
 
+
+            //Добавляем столбцы таблицы справочника в таблицу columnList
+            response = await columnList_add([{
+                Schema: schema,
+                Table: dic,
+                Type: 'dictionary'
+            }]);
+            resp.push(response);
             //Добавляем столбцы справочника в новой схеме        
             response = await column_add([{
                 Schema: schema,
@@ -498,7 +560,7 @@ async function column_add(tableModels = []) {
     for await (const tableModel of tableModels) {
         //Узнаём информацию какие столбцы надо создать
         const columnList_needAdd = tableModel.Table.columnList_get();
-        
+
         //Узнаём  информацию о таблице в БД и о её полях
         const Content = {
             Type: 'table',
@@ -526,7 +588,108 @@ async function column_add(tableModels = []) {
         response = await pg.entityChange(Entity);
         resp.push(response);
     };
-    
+
+    return response = resp;
+};
+
+
+/**
+ * Создание таблицы в БД если её нет
+ * @param {Object[]} tableModels - объекты классов Schema и Table
+ * @returns {Object.<string, string>} - информация: Message или Error.
+ */
+async function tableList_add(tableModels = []) {
+    let response = {};
+    let resp = [];
+
+    for await (const tableModel of tableModels) {
+        //console.log('tableModel=',tableModel);
+        //Узнаём  информацию о таблице в таблице tableList
+        const Content = {
+            Type: tableModel.Type,
+            Schema: tableModel.Schema.SchemaName,
+            TableName: tableModel.Table.TableName
+        };
+        //console.log('Content=',Content);
+        const tableInfo = await pg.tableInfo(Content);
+        //console.log('tableInfo=',tableInfo);
+
+        //Если информации таблице нет - добавляем её в tableList
+        if (!tableInfo.length) {
+            //Узнаём информацию какие столбцы надо создать
+            const columnList = tableModel.Table.columnList_get();
+            //console.log('columnList=',columnList);
+            const Name = columnList.find(row => row.ColumnName == 'Name');
+            const Description = columnList.find(row => row.ColumnName == 'Description');
+            const Parent = columnList.find(row => row.ColumnName == 'Parent');
+
+            const Entity = {
+                Schema: tableModel.Schema.SchemaName,
+                Name: Name.Value,
+                TableName: tableModel.Table.TableName,
+                Description: Description.Value,
+                Parent: Parent ? Parent.Value : null,
+                Type: tableModel.Type
+            };
+            //console.log('Entity=', Entity);
+            response = await pg.createTable(Entity);
+            //console.log('response=', response);
+            resp.push(response);
+        };
+    };
+    return response = resp;
+};
+
+
+/**
+ * Создание таблицы в БД если её нет
+ * @param {Object[]} tableModels - объекты классов Schema и Table
+ * @returns {Object.<string, string>} - информация: Message или Error.
+ */
+async function columnList_add(tableModels = []) {
+    let response = {};
+    let resp = [];
+
+    for await (const tableModel of tableModels) {
+        //Узнаём  информацию о таблице в таблице tableList
+        let Content = {
+            Type: tableModel.Type,
+            Schema: tableModel.Schema.SchemaName,
+            TableName: tableModel.Table.TableName
+        };
+        const tableInfo = await pg.tableInfo(Content);
+        //console.log('tableInfo=',tableInfo[0]);
+        if (!tableInfo[0]) return response.Error = 'table not exist';
+
+        //Узнаём  информацию о столбцах таблицы в таблице columnList
+        Content = {
+            Schema: tableModel.Schema.SchemaName,
+            TableID: tableInfo[0].id
+        };
+        const columnListInfo = await pg.columnListInfo(Content);
+        //console.log('columnListInfo=',columnListInfo);
+
+        //Узнаём информацию какие столбцы надо создать
+        const columnList_needAdd = tableModel.Table.columnList_get();
+
+        for await (const column of columnList_needAdd) {
+            //Есть ли столбец в таблице в БД
+            const haveColumn = columnListInfo.some(row => row.ColumnName == column.ColumnName);
+            //Если столбца в таблице columnList нет - добавляем
+            if (!haveColumn) {
+                const Entity = {
+                    Schema: tableModel.Schema.SchemaName,
+                    Name: column.Value,
+                    ColumnName: column.ColumnName,
+                    DataType: column.DataType,
+                    TableID: tableInfo[0].id
+                };
+                //console.log('Entity=', Entity);
+                response = await pg.createColumn(Entity);
+                resp.push(response);
+            };
+        };
+    };
     return response = resp;
 };
 

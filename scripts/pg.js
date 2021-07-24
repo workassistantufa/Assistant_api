@@ -12,27 +12,35 @@ const pool = new Pool(config.dbConfig);
 
 /**
  * Поиск записи в таблице по docID и/или id.
- * @param {BigInt} docID - id таблицы document.
- * @param {BigInt} id - id таблицы docColumn.
+ * @param {BigInt} docID - id таблицы.
+ * @param {BigInt} id - id таблицы.
  * @returns {Object.<string, string>} Возвращает строку таблицы в виде объекта, типа: Ключ - Наименование столбца, значение - Содержимое столбца.
  */
-/*
 async function findByID({
-    docID,
+    Schema,
+    TableName,
+    ColumnList,
     id
 }) {
     let response = {};
-    let res = {};
-    if (!docID) return response.Error = 'docID is null';
+    if (!Schema) return response.Error = 'Schema is null';
+    if (!TableName) return response.Error = 'TableName is null';
     if (!id) return response.Error = 'id is null';
+
+    let query = '';
+    const columnList = ColumnList.map(col => '"' + col + '"').join(',');
 
     const client = await pool.connect();
     try {
-        res = await client.query('SELECT * FROM document WHERE id = $1', [docID]);
+        query = 'SELECT ' + columnList.toString() + ' FROM "' + Schema.toString() + '"."' + TableName.toString() + '" WHERE id = $1';
+            const tableData = await client.query(query, [id]);
+            response = tableData.rows[0];
+
+        /*res = await client.query('SELECT * FROM document WHERE id = $1', [docID]);
         console.log('res=', res.rows[0]);
         const doc = res.rows[0];
         res = await client.query('SELECT * FROM ' + doc.tablename + ' WHERE id = $1', [id]);
-        response = res.rows[0];
+        response = res.rows[0];*/
     } catch (error) {
         console.log(error.stack);
         response.Error = error.stack;
@@ -41,47 +49,52 @@ async function findByID({
     };
     return response;
 };
-*/
+
 /**
  * Поиск записей в таблице по docID и/или условию where.
  * @param {BigInt} docID - id таблицы document.
  * @param {Object.<string, string>} where - условие поиска. Ключ - Наименование столбца, значение - Содержимое столбца.
  * @returns {Object[]} Возвращает строки таблицы в виде объекта, типа: Ключ - Наименование столбца, значение - Содержимое столбца.
  */
-/*
 async function findAll({
-    tableID,
+    Schema,
+    TableName,
+    ColumnList,
     where
-}) {
+} = {}) {
     let response = {};
     let res = {};
-    //if (!docID) return response.Error = 'docID is null';
+    let query = '';
+    const columnList = ColumnList.map(col => '"' + col + '"').join(',');
 
     const client = await pool.connect();
     try {
         //Если есть where - ищем по условию в таблице документа
-        if (where && docID) {
-            res = await client.query('SELECT * FROM document WHERE id = $1', [docID]);
+        if (where && TableID) {
+            /*res = await client.query('SELECT * FROM document WHERE id = $1', [docID]);
             console.log('res=', res.rows[0]);
             const doc = res.rows[0];
             const key = Object.keys(where);
             const value = Object.values(where);
             const tableData = await client.query('SELECT * FROM ' + doc.rows[0].tablename + ' WHERE $1 = $2', [key[0], value[0]]);
-            response = tableData.rows;
-        } else if (docID) { //Если нет where - ищем все записи в таблице документа
-            const doc = await client.query('SELECT * FROM document WHERE id = $1', [docID]);
-            console.log('doc=', doc.rows[0]);
-            const tableData = await client.query('SELECT * FROM ' + doc.rows[0].tablename);
+            response = tableData.rows;*/
+        } else if (TableName) { //Если нет where - ищем все записи в таблице документа
+            //query = 'SELECT * FROM "' + Schema.toString() + '"."tableList" WHERE "id" = ' + TableID.toString();
+            //const doc = await client.query(query);
+
+            //console.log('doc=', doc.rows[0]);
+            query = 'SELECT ' + columnList.toString() + ' FROM "' + Schema.toString() + '"."' + TableName.toString() + '"';
+            const tableData = await client.query(query);
             response = tableData.rows;
         } else {
-            let res = await client.query('SELECT * FROM document');
+            /*let res = await client.query('SELECT * FROM document');
             const docModel = res.rows;
             res = await client.query('SELECT * FROM docColumn');
             const docColumnModel = res.rows;
             response = {
                 docModel,
                 docColumnModel
-            };
+            };*/
         };
     } catch (error) {
         console.log(error.stack);
@@ -91,7 +104,7 @@ async function findAll({
     };
     return response;
 };
-*/
+
 /**
  * Поиск записи в таблице по docID и id, также потск данных в дочерних таблицах.
  * @param {BigInt} docID - id таблицы document.
@@ -129,25 +142,40 @@ async function findWithChildren({
 
 /**
  * Возвращает информацию о столбцах таблиц системы
- * @param {BigInt} tableID - id таблицы tablelist.
+ * @param {BigInt} TableID - id таблицы tableList.
  * @returns {Object[]} Возвращает строки таблицы в виде объекта, типа: Ключ - Наименование столбца, значение - Содержимое столбца.
  */
 async function tableInfo({
-    tableID,
-    type
+    Schema,
+    TableID,
+    Type,
+    TableName
 } = {}) {
     let response = {};
     let res = {};
+    let query = '';
     const client = await pool.connect();
-    try {
-        if (tableID) {
-            res = await client.query('SELECT * FROM tablelist WHERE id = $1', [tableID]);
+    try { //query = 'ALTER TABLE "' + Schema.toString() + '"."' + Name.toString() + '" ADD COLUMN ' + _columnGet.column;
+        if (TableID) {
+            query = 'SELECT * FROM "' + Schema.toString() + '"."tableList" WHERE "id" = "' + TableID.toString() + '"';
+            res = await client.query(query);
             response = res.rows[0];
-        } else if (type) {
-            res = await client.query('SELECT * FROM tablelist WHERE type = $1', [type]);
+        } else if (Type && TableName) {
+            query = 'SELECT * FROM "' + Schema.toString() + '"."tableList" WHERE "Type" = ' + `'` + Type.toString() + `'`;
+            query = query + ' AND "TableName" = ' + `'` + TableName.toString() + `'`;
+            res = await client.query(query);
             response = res.rows;
+        } else if (Type) {
+            query = 'SELECT * FROM "' + Schema.toString() + '"."tableList" WHERE "Type" = ' + `'` + Type.toString() + `'`;
+            res = await client.query(query);
+            response = res.rows;
+        } else if (TableName) {
+            query = 'SELECT * FROM "' + Schema.toString() + '"."tableList" WHERE "TableName" = ' + `'` + TableName.toString() + `'`;
+            res = await client.query(query);
+            response = res.rows[0];
         } else {
-            res = await client.query('SELECT * FROM tablelist');
+            query = 'SELECT * FROM "' + Schema.toString() + '"."tableList"';
+            res = await client.query(query);
             response = res.rows;
         };
     } catch (error) {
@@ -161,23 +189,31 @@ async function tableInfo({
 
 /**
  * Поиск в таблице columnlist
- * @param {BigInt} tableID - id таблицы tablelist.
- * @param {BigInt} id - id таблицы columnlist.
+ * @param {BigInt} TableID - id таблицы tableList.
+ * @param {BigInt} id - id таблицы columnList.
  * @returns {Object[]} Возвращает строки таблицы в виде объекта, типа: Ключ - Наименование столбца, значение - Содержимое столбца.
  */
 async function columnListInfo({
-    tableID,
+    Schema,
+    TableID,
     id
 } = {}) {
     let response = {};
     let res = {};
+    let query = '';
     const client = await pool.connect();
     try {
         if (id) {
-            res = await client.query('SELECT * FROM columnlist WHERE id = $1', [id]);
+            query = 'SELECT * FROM "' + Schema.toString() + '"."columnList" WHERE "id" = ' + id.toString();
+            res = await client.query(query);
             response = res.rows[0];
-        } else if (tableID) {
-            res = await client.query('SELECT * FROM columnlist WHERE tableid = $1', [tableID]);
+        } else if (TableID) {
+            query = 'SELECT * FROM "' + Schema.toString() + '"."columnList" WHERE "TableID" = ' + TableID.toString();
+            res = await client.query(query);
+            response = res.rows;
+        } else {
+            query = 'SELECT * FROM "' + Schema.toString() + '"."columnList"';
+            res = await client.query(query);
             response = res.rows;
         };
     } catch (error) {
@@ -188,14 +224,17 @@ async function columnListInfo({
     };
     return response;
 };
-/*
+
 async function create({
-    tableID,
+    Schema,
+    TableID,
     columnList = {}
 } = {}) {
     let response = {};
     let res = {};
-    if (!tableID) return response.Error = 'tableID is null';
+    if (!TableID) return response.Error = 'TableID is null';
+
+    let query = '';
 
     let columns = '';
     let values = '';
@@ -204,35 +243,46 @@ async function create({
 
     const client = await pool.connect();
     try {
-        res = await client.query('SELECT * FROM document WHERE id = $1', [docID]);
+        query = 'SELECT * FROM "' + Schema.toString() + '"."tableList" WHERE "id" = ' + TableID.toString();
+        res = await client.query(query);
         const docModel = res.rows[0];
-        res = await client.query('SELECT * FROM doccolumn WHERE docid = $1', [docID]);
+        //console.log('docModel=',docModel);
+
+        query = 'SELECT * FROM "' + Schema.toString() + '"."columnList" WHERE "TableID" = ' + TableID.toString();
+        res = await client.query(query);
         const docColumnModel = res.rows;
+        console.log('docColumnModel=', docColumnModel);
 
-        docColumnModel.forEach((row) => {
-            //Пребираем объект
-            Object.entries(docColumn).forEach(([key, value]) => {
-                if (row.columnname == key) {
-                    variable.push(value);
-                    columns = columns == '' ? row.columnname : columns + ', ' + row.columnname;
-                    values = values == '' ? '$' + id : values + ', ' + '$' + id;
-                    id = id + 1;
-                };
-            });
-        });
-        //console.log('columns=', columns);
-        //console.log('values=', values);
-        //console.log('variable=', variable);
+        //query = 'INSERT INTO "' + Schema.toString() + '"."'+docModel.TableName.toString()+'" ("Name", "ColumnName", "Description", "DataType", "TableID") VALUES (';
+        //query = query + name + ',' + columnName + ',' + description + ',' + datatype + ',' + tableID + ')';
+        /* res = await client.query('SELECT * FROM doccolumn WHERE docid = $1', [docID]);
+         const docColumnModel = res.rows;
 
-        const query = 'INSERT INTO ' + docModel.tablename + ' (' + columns + ') VALUES (' + values + ')';
-        console.log('query=', query);
-        await client.query(query, variable);
+         docColumnModel.forEach((row) => {
+             //Пребираем объект
+             Object.entries(docColumn).forEach(([key, value]) => {
+                 if (row.columnname == key) {
+                     variable.push(value);
+                     columns = columns == '' ? row.columnname : columns + ', ' + row.columnname;
+                     values = values == '' ? '$' + id : values + ', ' + '$' + id;
+                     id = id + 1;
+                 };
+             });
+         });
+         //console.log('columns=', columns);
+         //console.log('values=', values);
+         //console.log('variable=', variable);
 
-        res = await client.query('SELECT MAX(id) FROM ' + docModel.tablename);
-        const newId = res.rows[0].max;
-        //console.log('res=',res);
-        const newDoc = await client.query('SELECT * FROM ' + docModel.tablename + ' WHERE id = $1', [newId]);
-        response = newDoc.rows[0];
+         const query = 'INSERT INTO ' + docModel.tablename + ' (' + columns + ') VALUES (' + values + ')';
+         console.log('query=', query);
+         await client.query(query, variable);
+
+         res = await client.query('SELECT MAX(id) FROM ' + docModel.tablename);
+         const newId = res.rows[0].max;
+         //console.log('res=',res);
+         const newDoc = await client.query('SELECT * FROM ' + docModel.tablename + ' WHERE id = $1', [newId]);
+         response = newDoc.rows[0];
+         */
     } catch (error) {
         console.log(error.stack);
         response.Error = error.stack;
@@ -241,41 +291,50 @@ async function create({
     };
     return response;
 };
-*/
+
 /**
- * Создание новой строки в таблице tablelist.
- * @param {Object.<string, string>} columnList - значения в новой строке. Ключ - Наименование столбца, значение - Содержимое столбца.
- * @returns {Object.<string, string>} Возвращает новую строку таблицы tablelist в виде объекта, типа: Ключ - Наименование столбца, значение - Содержимое столбца.
+ * Создание новой строки в таблице tableList.
+ * @param {Object.<string, string>} Schema_Name_TableName_Description_Parent_Type
+ * @returns {Object.<string, string>} Возвращает новую строку таблицы tableList в виде объекта, типа: Ключ - Наименование столбца, значение - Содержимое столбца.
  */
-async function createTable(
-    columnList = {}
-) {
+async function createTable({
+    Schema,
+    Name,
+    TableName,
+    Description,
+    Parent,
+    Type
+}) {
     let response = {};
+    let query = '';
     const client = await pool.connect();
     try {
-        const doc = await client.query('SELECT MAX(id) FROM tablelist');
+        const doc = await client.query('SELECT MAX(id) FROM tableList');
         const newId = doc.rows[0].max ? Number(doc.rows[0].max) + 1 : 1;
         //console.log('newId=', newId);
         let type;
-        let name;
-        if (columnList.type) { //Если явно указан тип таблицы: Документ(document), Справочник(dictionary)
-            type = columnList.type;
-            if (columnList.type == 'document') name = columnList.name ? columnList.name : 'Новый_документ' + newId;
-            if (columnList.type == 'dictionary') name = columnList.name ? columnList.name : 'Новый_справочник' + newId;
+        let name = `'` + Name.toString() + `'`;
+        if (Type) { //Если явно указан тип таблицы: Документ(document), Справочник(dictionary)
+            type = `'` + Type.toString() + `'`;
+            if (Type == 'document') name = Name ? name : `'Новый_документ` + newId + `'`;
+            if (Type == 'dictionary') name = Name ? name : `'Новый_справочник` + newId + `'`;
         } else {
-            name = columnList.name ? columnList.name : 'Новая_таблица' + newId;
+            name = Name ? name : `'Новая_таблица` + newId + `'`;
         };
-        const tableName = columnList.tableName ? columnList.tableName : 'newtable' + newId;
-        const description = columnList.description ? columnList.description : '';
-        const parent = columnList.parent ? columnList.parent : null;
-        const variable = [name, tableName, description, parent, type];
+        const tableName = TableName ? `'` + TableName.toString() + `'` : `'newtable` + newId + `'`;
+        const description = Description ? `'` + Description.toString() + `'` : `''`;
+        const parent = Parent ? `'` + Parent.toString() + `'` : null;
 
-        const query = `INSERT INTO tablelist (name, tableName, description, parent, type)
-                        VALUES ($1, $2, $3, $4, $5)`;
+        query = 'INSERT INTO "' + Schema.toString() + '"."tableList" ("Name", "TableName", "Description", "Parent", "Type") VALUES (';
+        query = query + name + ',' + tableName + ',' + description + ',' + parent + ',' + type + ')';
 
-        await client.query(query, variable);
+        await client.query(query);
 
-        const newTable = await client.query('SELECT * FROM tablelist WHERE id = $1', [newId]);
+        query = 'SELECT * FROM "' + Schema.toString() + '"."tableList"  WHERE ';
+        query = query + ' "Name" = ' + name + ' and "TableName" = ' + tableName;
+        query = query + ' and "Description" = ' + description + ' and "Type" = ' + type;
+
+        const newTable = await client.query(query);
         response = newTable.rows[0];
 
     } catch (error) {
@@ -289,33 +348,43 @@ async function createTable(
 
 /**
  * Создание новой строки в таблице columnList.
- * @param {BigInt} tableID - id таблицы document.
+ * @param {BigInt} TableID - id таблицы document.
  * @param {Object.<string, string>} columnList - значения в новой строке. Ключ - Наименование столбца, значение - Содержимое столбца.
  * @returns {Object.<string, string>} Возвращает новую строку таблицы columnList в виде объекта, типа: Ключ - Наименование столбца, значение - Содержимое столбца.
  */
 async function createColumn({
-    tableID,
-    columnList = {}
+    Schema,
+    Name,
+    ColumnName,
+    DataType,
+    Description,
+    TableID
 } = {}) {
     let response = {};
+    let query = '';
     const client = await pool.connect();
-    if (!tableID) return response.Error = 'tableID is null';
+    if (!TableID) return response.Error = 'TableID is null';
     try {
-        const doc = await client.query('SELECT MAX(id) FROM columnList');
+        const doc = await client.query('SELECT MAX(id) FROM "' + Schema.toString() + '"."columnList"');
         const newId = doc.rows[0].max ? Number(doc.rows[0].max) + 1 : 1;
         //console.log('newId=', newId);
-        const name = columnList.name ? columnList.name : 'Новый_столбец' + newId;
-        const columnName = columnList.columnName ? columnList.columnName : 'newcolumn' + newId;
-        const datatype = columnList.datatype ? columnList.datatype : 'TEXT';
-        const description = columnList.description ? columnList.description : '';
-        const variable = [name, columnName, datatype, description, tableID];
+        const name = Name ? `'` + Name.toString() + `'` : `'Новый_столбец` + newId + `'`;
+        const columnName = ColumnName ? `'` + ColumnName.toString() + `'` : `'newcolumn'` + newId + `'`;
+        const datatype = DataType ? `'` + DataType.toString() + `'` : 'TEXT';
+        const description = Description ? `'` + Description.toString() + `'` : `''`;
+        const tableID = TableID.toString();
 
-        const query = `INSERT INTO columnList (name, columnName, datatype, description, tableid)
-                        VALUES ($1, $2, $3, $4, $5)`;
+        query = 'INSERT INTO "' + Schema.toString() + '"."columnList" ("Name", "ColumnName", "Description", "DataType", "TableID") VALUES (';
+        query = query + name + ',' + columnName + ',' + description + ',' + datatype + ',' + tableID + ')';
 
-        await client.query(query, variable);
+        //console.log('query=', query);
+        await client.query(query);
 
-        const newColumn = await client.query('SELECT * FROM columnList WHERE id = $1', [newId]);
+        query = 'SELECT * FROM "' + Schema.toString() + '"."columnList"  WHERE ';
+        query = query + ' "Name" = ' + name + ' and "ColumnName" = ' + columnName;
+        query = query + ' and "Description" = ' + description + ' and "TableID" = ' + TableID;
+
+        const newColumn = await client.query(query);
         response = newColumn.rows[0];
 
     } catch (error) {
@@ -608,9 +677,9 @@ async function createSchema({
 
 
 module.exports = {
-    //findByID,
-    //findAll,
-    //create,
+    findByID,
+    findAll,
+    create,
 
 
     createTable,

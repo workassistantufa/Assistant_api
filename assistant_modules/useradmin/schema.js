@@ -10,10 +10,10 @@ let Schema = class {
 let TableList = class {
     constructor() {
         this.TableName = 'tableList';
-    }
-    columnList_get() {
-        const Name = new Column.Name();
-        Name.AllowNull = 'false';
+        this.TableDescription = 'Таблица с информацией о таблицах схемы';
+
+        this.Name = new Column.Name();
+        this.Name.AllowNull = 'false';
 
         const TableName = new Column.TableName();
         TableName.AllowNull = 'false';
@@ -21,7 +21,8 @@ let TableList = class {
         const Description = new Column.Description();
         const Parent = new Column.Parent();
         const Type = new Column.Type();
-
+    }
+    columnList_get() { 
         return [Name, TableName, Description, Parent, Type];
     }
 };
@@ -44,7 +45,7 @@ let СolumnList = class {
 
         const TableID = new Column.TableID();
         TableID.AllowNull = 'false';
-        TableID.References = 'tableList (id)';
+        TableID.References = `"useradmin"."tableList" (id)`;
 
         return [Name, ColumnName, DataType, Description, TableID];
     }

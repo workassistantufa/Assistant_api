@@ -1,135 +1,106 @@
-const Name = class {
-    ColumnName = 'Name';
+const id = class {
+    constructor({
+        Value = null
+    } = {}) {
+        this.Value = Value;
+    }
+
     get ColumnName() {
-        return this.ColumnName;
+        return 'id'
     }
-
-    DataType = 'Text';
     get DataType() {
-        return this.DataType;
+        return 'Bigint';
     }
-
-    AllowNull = 'true';
     get AllowNull() {
-        return this.AllowNull;
+        return 'false';
     }
-    set AllowNull(value = 'true') {
-        this.AllowNull = value ? 'true' : 'false';
-    }
-
-    Unique = 'false';
     get Unique() {
-        return this.Unique;
+        return 'true';
     }
-    set Unique(value = 'false') {
-        this.Unique = value ? 'true' : 'false';
-    }
-
-    //Default - Unique  //Поля взаимоисключающие !!!!!!!!!!!!!!!!
-    Default = '';
     get Default() {
-        return this.Default;
+        return 'No Default';
     }
-    set Default(value = '') {
-        this.Default = value ? value : '';
-    }
-
-    References = '';
     get References() {
-        return this.References;
+        return 'No References';
     }
-    set References(value = '') {
-        this.References = value ? value : '';
+    get Value() {
+        return this._Value;
+    }
+    set Value(value = 0) {
+        if (value <= 0) throw new Error("Ошибка: id <= 0");
+        this._Value = value;
     }
 };
 
-const TableName = class {
-    ColumnName = 'TableName';
-    get ColumnName() {
-        return this.ColumnName;
+//Базовые свойства поля
+class Column {
+    constructor({
+        Value = null,
+        AllowNull = true,
+        Unique = false,
+        Default = '',
+        References = ''
+    } = {}) {
+        if ((Unique == true) && (Default != '')) throw new Error("Ошибка: Default - Unique Поля взаимоисключающие");
+        this.Value = Value;
+        this.AllowNull = AllowNull;
+        this.Unique = Unique;
+        this.Default = Default;
+        this.References = References;
     }
-
-    DataType = 'Text';
-    get DataType() {
-        return this.DataType;
-    }
-
-    AllowNull = 'true';
     get AllowNull() {
-        return this.AllowNull;
+        return this._AllowNull;
     }
     set AllowNull(value = 'true') {
-        this.AllowNull = value ? 'true' : 'false';
+        this._AllowNull = value;
     }
-
-    Unique = 'false';
     get Unique() {
-        return this.Unique;
+        return this._Unique;
     }
-    set Unique(value = 'false') {
-        this.Unique = value ? 'true' : 'false';
+    set Unique(value) {
+        this._Unique = value;
     }
-
-    //Default - Unique  //Поля взаимоисключающие !!!!!!!!!!!!!!!!
-    Default = '';
     get Default() {
-        return this.Default;
+        return this._Default;
     }
-    set Default(value = '') {
-        this.Default = value ? value : '';
+    set Default(value) {
+        this._Default = value;
     }
-
-    References = '';
     get References() {
-        return this.References;
+        return this._References;
     }
     set References(value = '') {
-        this.References = value ? value : '';
+        this._References = value;
+    }
+    get Value() {
+        return this._Value;
+    }
+    set Value(value = '') {
+        this._Value = value;
     }
 };
 
-const Description = class {
-    ColumnName = 'Description';
+const Name = class extends Column {
+    constructor(...args) {
+        super(...args);
+    }
     get ColumnName() {
-        return this.ColumnName;
+        return 'Name';
     }
-
-    DataType = 'Text';
     get DataType() {
-        return this.DataType;
+        return 'Text';
     }
+};
 
-    AllowNull = 'true';
-    get AllowNull() {
-        return this.AllowNull;
+const Description = class extends Column  {
+    constructor(...args) {
+        super(...args);
     }
-    set AllowNull(value = 'true') {
-        this.AllowNull = value ? 'true' : 'false';
+    get ColumnName() {
+        return 'Description';
     }
-
-    Unique = 'false';
-    get Unique() {
-        return this.Unique;
-    }
-    set Unique(value = 'false') {
-        this.Unique = value ? 'true' : 'false';
-    }
-
-    //Default - Unique  //Поля взаимоисключающие !!!!!!!!!!!!!!!!
-    Default = '';
-    get Default() {
-        return this.Default;
-    }
-    set Default(value = '') {
-        this.Default = value ? value : '';
-    }
-
-    References = '';
-    get References() {
-        return this.References;
-    }
-    set References(value = '') {
-        this.References = value ? value : '';
+    get DataType() {
+        return 'Text';
     }
 };
 
@@ -176,10 +147,18 @@ const Parent = class {
     set References(value = '') {
         this.References = value ? value : '';
     }
+
+    Value = null;
+    get Value() {
+        return this.Value;
+    }
+    set Value(value = '') {
+        this.Value = value ? value : '';
+    }
 };
 
 const Type = class {
-     //Тип таблицы: Документ(document), Справочник(dictionary)
+    //Тип таблицы: Документ(document), Справочник(dictionary)
     ColumnName = 'Type';
     get ColumnName() {
         return this.ColumnName;
@@ -222,51 +201,182 @@ const Type = class {
     set References(value = '') {
         this.References = value ? value : '';
     }
+
+    Value = null;
+    get Value() {
+        return this.Value;
+    }
+    set Value(value = '') {
+        this.Value = value ? value : '';
+    }
 };
 
+const TableID = class {
+    ColumnName = 'TableID';
+    get ColumnName() {
+        return this.ColumnName;
+    }
+
+    DataType = 'Bigserial';
+    get DataType() {
+        return this.DataType;
+    }
+
+    AllowNull = 'true';
+    get AllowNull() {
+        return this.AllowNull;
+    }
+    set AllowNull(value = 'true') {
+        this.AllowNull = value ? 'true' : 'false';
+    }
+
+    Unique = 'false';
+    get Unique() {
+        return this.Unique;
+    }
+    set Unique(value = 'false') {
+        this.Unique = value ? 'true' : 'false';
+    }
+
+    //Default - Unique  //Поля взаимоисключающие !!!!!!!!!!!!!!!!
+    Default = '';
+    get Default() {
+        return this.Default;
+    }
+    set Default(value = '') {
+        this.Default = value ? value : '';
+    }
+
+    References = '';
+    get References() {
+        return this.References;
+    }
+    set References(value = '') {
+        this.References = value ? value : '';
+    }
+
+    Value = null;
+    get Value() {
+        return this.Value;
+    }
+    set Value(value = '') {
+        this.Value = value ? value : '';
+    }
+};
+
+module.exports = {
+    id,
+    Name,
+    Description,
+    Parent,
+    Type,
+    TableID
+};
+
+/*
+const TableName = class {
+    ColumnName = 'TableName';
+    get ColumnName() {
+        return this.ColumnName;
+    }
+
+    DataType = 'Text';
+    get DataType() {
+        return this.DataType;
+    }
+
+    AllowNull = 'true';
+    get AllowNull() {
+        return this.AllowNull;
+    }
+    set AllowNull(value = 'true') {
+        this.AllowNull = value ? 'true' : 'false';
+    }
+
+    Unique = 'false';
+    get Unique() {
+        return this.Unique;
+    }
+    set Unique(value = 'false') {
+        this.Unique = value ? 'true' : 'false';
+    }
+
+    //Default - Unique  //Поля взаимоисключающие !!!!!!!!!!!!!!!!
+    Default = '';
+    get Default() {
+        return this.Default;
+    }
+    set Default(value = '') {
+        this.Default = value ? value : '';
+    }
+
+    References = '';
+    get References() {
+        return this.References;
+    }
+    set References(value = '') {
+        this.References = value ? value : '';
+    }
+
+    Value = null;
+    get Value() {
+        return this.Value;
+    }
+    set Value(value = '') {
+        this.Value = value ? value : '';
+    }
+};
 const ColumnName = class {
-   ColumnName = 'ColumnName';
-   get ColumnName() {
-       return this.ColumnName;
-   }
+    ColumnName = 'ColumnName';
+    get ColumnName() {
+        return this.ColumnName;
+    }
 
-   DataType = 'Text';
-   get DataType() {
-       return this.DataType;
-   }
+    DataType = 'Text';
+    get DataType() {
+        return this.DataType;
+    }
 
-   AllowNull = 'true';
-   get AllowNull() {
-       return this.AllowNull;
-   }
-   set AllowNull(value = 'true') {
-       this.AllowNull = value ? 'true' : 'false';
-   }
+    AllowNull = 'true';
+    get AllowNull() {
+        return this.AllowNull;
+    }
+    set AllowNull(value = 'true') {
+        this.AllowNull = value ? 'true' : 'false';
+    }
 
-   Unique = 'false';
-   get Unique() {
-       return this.Unique;
-   }
-   set Unique(value = 'false') {
-       this.Unique = value ? 'true' : 'false';
-   }
+    Unique = 'false';
+    get Unique() {
+        return this.Unique;
+    }
+    set Unique(value = 'false') {
+        this.Unique = value ? 'true' : 'false';
+    }
 
-   //Default - Unique  //Поля взаимоисключающие !!!!!!!!!!!!!!!!
-   Default = '';
-   get Default() {
-       return this.Default;
-   }
-   set Default(value = '') {
-       this.Default = value ? value : '';
-   }
+    //Default - Unique  //Поля взаимоисключающие !!!!!!!!!!!!!!!!
+    Default = '';
+    get Default() {
+        return this.Default;
+    }
+    set Default(value = '') {
+        this.Default = value ? value : '';
+    }
 
-   References = '';
-   get References() {
-       return this.References;
-   }
-   set References(value = '') {
-       this.References = value ? value : '';
-   }
+    References = '';
+    get References() {
+        return this.References;
+    }
+    set References(value = '') {
+        this.References = value ? value : '';
+    }
+
+    Value = null;
+    get Value() {
+        return this.Value;
+    }
+    set Value(value = '') {
+        this.Value = value ? value : '';
+    }
 };
 
 const DataType = class {
@@ -274,12 +384,12 @@ const DataType = class {
     get ColumnName() {
         return this.ColumnName;
     }
- 
+
     DataType = 'Text';
     get DataType() {
         return this.DataType;
     }
- 
+
     AllowNull = 'true';
     get AllowNull() {
         return this.AllowNull;
@@ -287,7 +397,7 @@ const DataType = class {
     set AllowNull(value = 'true') {
         this.AllowNull = value ? 'true' : 'false';
     }
- 
+
     Unique = 'false';
     get Unique() {
         return this.Unique;
@@ -295,7 +405,7 @@ const DataType = class {
     set Unique(value = 'false') {
         this.Unique = value ? 'true' : 'false';
     }
- 
+
     //Default - Unique  //Поля взаимоисключающие !!!!!!!!!!!!!!!!
     Default = '';
     get Default() {
@@ -304,7 +414,7 @@ const DataType = class {
     set Default(value = '') {
         this.Default = value ? value : '';
     }
- 
+
     References = '';
     get References() {
         return this.References;
@@ -312,61 +422,13 @@ const DataType = class {
     set References(value = '') {
         this.References = value ? value : '';
     }
- };
- 
 
- const TableID = class {
-    ColumnName = 'TableID';
-    get ColumnName() {
-        return this.ColumnName;
+    Value = null;
+    get Value() {
+        return this.Value;
     }
- 
-    DataType = 'Bigserial';
-    get DataType() {
-        return this.DataType;
+    set Value(value = '') {
+        this.Value = value ? value : '';
     }
- 
-    AllowNull = 'true';
-    get AllowNull() {
-        return this.AllowNull;
-    }
-    set AllowNull(value = 'true') {
-        this.AllowNull = value ? 'true' : 'false';
-    }
- 
-    Unique = 'false';
-    get Unique() {
-        return this.Unique;
-    }
-    set Unique(value = 'false') {
-        this.Unique = value ? 'true' : 'false';
-    }
- 
-    //Default - Unique  //Поля взаимоисключающие !!!!!!!!!!!!!!!!
-    Default = '';
-    get Default() {
-        return this.Default;
-    }
-    set Default(value = '') {
-        this.Default = value ? value : '';
-    }
- 
-    References = '';
-    get References() {
-        return this.References;
-    }
-    set References(value = '') {
-        this.References = value ? value : '';
-    }
- };
-
-module.exports = {
-    Name,
-    TableName,
-    Description,
-    Parent,
-    Type,
-    ColumnName,
-    DataType,
-    TableID
 };
+*/
