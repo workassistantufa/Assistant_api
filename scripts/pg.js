@@ -489,7 +489,8 @@ async function entityChange({
     Schema,
     Name,
     Method,
-    columnList
+    columnList,
+    TableModel
 } = {}) {
     let response = {};
     let resp = [];
@@ -511,6 +512,7 @@ async function entityChange({
                 query = query + ', rcu VARCHAR(100) NOT NULL DEFAULT USER';
                 query = query + ', ruu VARCHAR(100) NOT NULL DEFAULT USER';
                 query = query + ')';
+                //console.log('query=',query);
                 await pool.query(query);
                 response.Message = 'SUCCESSFULLY: ' + query;
             };
@@ -520,7 +522,7 @@ async function entityChange({
                 //Если есть columnList
                 if (columnList) {
                     for await (const column of columnList) {
-                        const _columnGet = columnGet(column);
+                        const _columnGet = columnGet(column,TableModel);
                         if (_columnGet.Error) throw new UserException(_columnGet.Error);
                         query = 'ALTER TABLE "' + Schema.toString() + '"."' + Name.toString() + '" ADD COLUMN ' + _columnGet.column;
                         //console.log('query=', query);
@@ -554,32 +556,31 @@ function UserException(message) {
  * @param {Object.<string, string>} columnList - массив объектов с опиманием полей
  * @returns {Object.<string, string>} - response.Error или response.column
  */
-function columnGet(column) {
+function columnGet(column,TableModel) {
     let response = {};
     if (!column) return response.Error = 'columnList is null';
 
-    const columnname = column.ColumnName;
+    const columnname = column;
     if (!columnname) return response.Error = 'ColumnName is null';
 
-    const datatype = column.DataType;
+    const datatype = TableModel[column].DataType;
     if (!datatype) return response.Error = 'DataType is null';
 
     let allowNull = 'true'; // По умолчанию true
-    if (column.AllowNull == 'false') allowNull = ' NOT NULL '
+    if (TableModel[column].AllowNull== 'false') allowNull = ' NOT NULL '
     else allowNull = ' NULL ';
 
-
-    let _default = column.Default;
+    let _default = TableModel[column].Default ? ' DEFAULT ' + TableModel[column].Default : '';
 
     let unique = 'false'; //По умолчанию false
-    if (column.Unique == 'true') unique = ' UNIQUE '
+    if (TableModel[column].Unique == 'true') unique = ' UNIQUE '
     else unique = '';
 
     unique = _default ? '' : unique; //Поля взаимоисключающие
 
     let references = ' ';
-    if (column.References != '') {
-        references = ' REFERENCES ' + column.References + ' ';
+    if (TableModel[column].References != '') {
+        references = ' REFERENCES ' + TableModel[column].References + ' ';
         allowNull = '';
         _default = '';
         unique = '';

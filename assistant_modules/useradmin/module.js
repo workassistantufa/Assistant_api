@@ -1,8 +1,20 @@
-const Column = require('./../column.js');
+const DocMovement = require('./DocMovement.js');
+const Entity = require('./Entity.js');
 
-let Schema = class {
+module.exports = {
+    ModuleName: 'useradmin',
+    Description: 'Модуль администрирования пользователей',
+    FormList: ['DocMovement','Entity'],
+    DocMovement,
+    Entity
+}
+
+
+/*const Column = require('./../column.js');
+
+let Module = class {
     constructor() {
-        this.SchemaName = 'useradmin';
+        this.ModuleName = 'useradmin';
         this.Description = 'Модуль администрирования пользователей';
     }
 };
@@ -52,7 +64,6 @@ let СolumnList = class {
 };
 
 module.exports = {
-    Schema,
-    TableList,
-    СolumnList
+    Module
 };
+*/

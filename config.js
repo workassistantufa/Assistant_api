@@ -2,15 +2,15 @@
 module.exports.main_port = 3001;
 
 module.exports.dbConfig = {
-  user: 'postgres',
+  user: 'assistant',
   host: 'localhost',
-  database: 'postgres',
-  password: 'assistant',
+  database: 'assistantdb',
+  password: 'Workassistant1',
   port: 5432,
 }
 
 //Список подключенных модулей 
-module.exports.assistant_modules = ['useradmin'];
+module.exports.assistant_modules = ['dictionary'];
 
 
 //Подключение к БД sqlite3/main.db Windows
@@ -52,7 +52,7 @@ module.exports.group_chat_id = '-431221987';
 
 
 
-
+/*
 module.exports.schemaList_get = () => {
   let schemaList = [];
   schemaList[0] = {
@@ -238,3 +238,4 @@ module.exports.movement_get = () => {
   };
   return tablelist;
 };
+*/

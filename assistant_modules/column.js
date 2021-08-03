@@ -92,7 +92,7 @@ const Name = class extends Column {
     }
 };
 
-const Description = class extends Column  {
+const Description = class extends Column {
     constructor(...args) {
         super(...args);
     }
@@ -104,163 +104,105 @@ const Description = class extends Column  {
     }
 };
 
-const Parent = class {
-    ColumnName = 'Parent';
+const Login = class extends Column {
+    constructor(...args) {
+        super(...args);
+    }
     get ColumnName() {
-        return this.ColumnName;
+        return 'Login';
     }
-
-    DataType = 'Bigint';
     get DataType() {
-        return this.DataType;
-    }
-
-    AllowNull = 'true';
-    get AllowNull() {
-        return this.AllowNull;
-    }
-    set AllowNull(value = 'true') {
-        this.AllowNull = value ? 'true' : 'false';
-    }
-
-    Unique = 'false';
-    get Unique() {
-        return this.Unique;
-    }
-    set Unique(value = 'false') {
-        this.Unique = value ? 'true' : 'false';
-    }
-
-    //Default - Unique  //Поля взаимоисключающие !!!!!!!!!!!!!!!!
-    Default = '';
-    get Default() {
-        return this.Default;
-    }
-    set Default(value = '') {
-        this.Default = value ? value : '';
-    }
-
-    References = '';
-    get References() {
-        return this.References;
-    }
-    set References(value = '') {
-        this.References = value ? value : '';
-    }
-
-    Value = null;
-    get Value() {
-        return this.Value;
-    }
-    set Value(value = '') {
-        this.Value = value ? value : '';
+        return 'Text';
     }
 };
 
-const Type = class {
-    //Тип таблицы: Документ(document), Справочник(dictionary)
-    ColumnName = 'Type';
+const Password = class extends Column {
+    constructor(...args) {
+        super(...args);
+    }
     get ColumnName() {
-        return this.ColumnName;
+        return 'Password';
     }
-
-    DataType = 'Text';
     get DataType() {
-        return this.DataType;
-    }
-
-    AllowNull = 'true';
-    get AllowNull() {
-        return this.AllowNull;
-    }
-    set AllowNull(value = 'true') {
-        this.AllowNull = value ? 'true' : 'false';
-    }
-
-    Unique = 'false';
-    get Unique() {
-        return this.Unique;
-    }
-    set Unique(value = 'false') {
-        this.Unique = value ? 'true' : 'false';
-    }
-
-    //Default - Unique  //Поля взаимоисключающие !!!!!!!!!!!!!!!!
-    Default = '';
-    get Default() {
-        return this.Default;
-    }
-    set Default(value = '') {
-        this.Default = value ? value : '';
-    }
-
-    References = '';
-    get References() {
-        return this.References;
-    }
-    set References(value = '') {
-        this.References = value ? value : '';
-    }
-
-    Value = null;
-    get Value() {
-        return this.Value;
-    }
-    set Value(value = '') {
-        this.Value = value ? value : '';
+        return 'Text';
     }
 };
 
-const TableID = class {
-    ColumnName = 'TableID';
+const DateBegin = class extends Column {
+    constructor(...args) {
+        super(...args);
+    }
     get ColumnName() {
-        return this.ColumnName;
+        return 'DateBegin';
     }
-
-    DataType = 'Bigserial';
     get DataType() {
-        return this.DataType;
+        return 'Timestamp ';
     }
+};
 
-    AllowNull = 'true';
-    get AllowNull() {
-        return this.AllowNull;
+const DateEnd = class extends Column {
+    constructor(...args) {
+        super(...args);
     }
-    set AllowNull(value = 'true') {
-        this.AllowNull = value ? 'true' : 'false';
+    get ColumnName() {
+        return 'DateEnd';
     }
+    get DataType() {
+        return 'Timestamp ';
+    }
+};
 
-    Unique = 'false';
-    get Unique() {
-        return this.Unique;
+const Type = class extends Column {
+    constructor(...args) {
+        super(...args);
     }
-    set Unique(value = 'false') {
-        this.Unique = value ? 'true' : 'false';
+    get ColumnName() {
+        return 'Type';
     }
+    get DataType() {
+        return 'Text ';
+    }
+};
 
-    //Default - Unique  //Поля взаимоисключающие !!!!!!!!!!!!!!!!
-    Default = '';
-    get Default() {
-        return this.Default;
+const Parent = class extends Column {
+    constructor(...args) {
+        super(...args);
     }
-    set Default(value = '') {
-        this.Default = value ? value : '';
+    get ColumnName() {
+        return 'Parent';
     }
+    get DataType() {
+        return 'Bigint ';
+    }
+};
 
-    References = '';
+const User_id = class extends Column {
+    constructor(...args) {
+        super(...args);
+    }
+    get ColumnName() {
+        return 'User_id';
+    }
+    get DataType() {
+        return 'Bigint ';
+    }
     get References() {
-        return this.References;
+        return 'User (id)'
     }
-    set References(value = '') {
-        this.References = value ? value : '';
-    }
+};
 
-    Value = null;
-    get Value() {
-        return this.Value;
+const Client_id = class extends Column {
+    constructor(...args) {
+        super(...args);
     }
-    set Value(value = '') {
-        this.Value = value ? value : '';
+    get ColumnName() {
+        return 'Client_id';
+    }
+    get DataType() {
+        return 'Bigint ';
+    }
+    get References() {
+        return 'Client (id)'
     }
 };
 
@@ -268,9 +210,14 @@ module.exports = {
     id,
     Name,
     Description,
+    Login,
+    Password,
+    DateBegin,
+    DateEnd,
     Parent,
     Type,
-    TableID
+    User_id,
+    Client_id
 };
 
 /*

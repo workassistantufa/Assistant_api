@@ -1,9 +1,8 @@
 const pg = require('./pg.js');
 const fs = require('fs');
 const util = require('util');
-const exec = util.promisify(require('child_process').exec);
+//const exec = util.promisify(require('child_process').exec);
 const config = require('.././config.js');
-
 
 /**
  * route module.
@@ -26,14 +25,52 @@ module.exports.get_api = (ctx) => {
    </html>`
 };
 
+/**
+ * Получение данных из БД
+ * @param {string} module - Наименование модуля(схемы)
+ * @param {string} form - Наименование формы (module.FormList)
+ * @param {BigInt} id - Порядковый номер документа 
+ */
 module.exports.get = async (ctx) => {
     console.log('get.query=', ctx.query);
-    let type = ctx.query.type; //Тип окна
-    let tableID = ctx.query.tableID; //id таблицы tableList
-    let id = ctx.query.id; //id строки таблицы
-    let response = {};
-    let where = {};
+    //let type = ctx.query.type; //Тип окна
+    //let tableID = ctx.query.tableID; //id таблицы tableList
+    //let TableName = ctx.query.TableName; //id таблицы tableList
+    //let id = ctx.query.id; //id строки таблицы
+    //let where = {};
 
+    let response = {};
+    const module = ctx.query.module;
+    const form = ctx.query.form;
+    const id = ctx.query.id;
+
+    //await pg.createSchema({Name:'dictionary'})
+
+    if (!module) response = await moduleList_get();
+    else {
+        response = await module_get({
+            module,
+            form,
+            id
+        });
+    };
+
+    /*
+        switch (module) {
+            case 'dictionary':
+                response = await module_get({
+                    form,
+                    id
+                });
+                break;
+
+
+
+            default:
+                response.Error = 'Error, dont find module';
+                break;
+        };
+    */
     //let module = 'useradmin';
     //const dictionaryModels = require('./../assistant_modules/' + module + '/dic.js');
     //const {id} = require('./../assistant_modules/column.js');
@@ -51,55 +88,100 @@ module.exports.get = async (ctx) => {
     //type = 'dicJournal';
     //let TableName = 'User';
     //id = 0; //реестр
-
-    switch (type) {
-        case 'dicJournal':
-            response = await dicJournal_get();
-            break;
-
-        case 'dic':
-            response = await dicList_get({
-                TableName,
-                id
-            });
-            break;
-
-        default:
-            response.Error = 'Error, dont find type';
-            break;
-    };
-
+    /*
+        
+    */
     //Преобразуем JSON в текст
     ctx.response.body = JSON.stringify(response);
 };
 
+async function moduleList_get() {
+    let response = {};
+    let resp = [];
+    const assistant_modules = config.assistant_modules;
+    let id = 1;
+    for await (const moduleName of assistant_modules) {
+        const module = require('./../assistant_modules/' + moduleName + '/module.js');
+        //console.log('module=',module.Description);
+        const obj = {
+            id,
+            Name: module.Description,
+            Description: moduleName,
+            module: moduleName
+        }
+        id = id + 1;
+        resp.push(obj);
+    };
+    return response = resp;
+}
+
 /**
- * Список доступных справочников
- * @param {Object.<string, string>} module наименование модуля 
- * @returns {Object.<string, string>} [{Name,Description}]
+ * Данные модуля
+ * @param {Object.<string, string>} {module,form,id} наименование модуля, наименование формы, порядковый номер документа
+ * @returns {Object.<string, string>} [{id,Name,Description}]
  */
-async function dicJournal_get({
-    module = 'useradmin'
+async function module_get({
+    module,
+    form,
+    id
 } = {}) {
     let response = {};
     let resp = [];
-    //Перебираем объекты из файла модуля dic.js
-    const dictionaryModels = require('./../assistant_modules/' + module + '/dic.js');
-    const dicList = Object.keys(dictionaryModels);
-    let id = 0;
-    for await (const dicModel of dicList) {
-        const dic = new dictionaryModels[dicModel]({
+    const _module = require('./../assistant_modules/' + module + '/module.js');
+    const FormList = _module.FormList;
+
+    if (!form) { //Список форм справочников
+        let _id = 1;
+        //Перебираем формы модуля(схемы)        
+        for await (const formName of FormList) {
+            const _form = new _module[formName][formName]({
+                id: 1
+            });
+            const obj = {
+                id: _id,
+                Name: _form.FormDescription,
+                form: formName
+            };
+            resp.push(obj);
+            _id = _id + 1;
+        };
+        response = resp;
+    } else if (id == 0) { //Реестр справочника
+        const _form = new _module[form][form]({
             id: 1
         });
-        let obj = {};
-        obj.id = id;
-        obj.Name = dic.DicDescription;
-        obj.Description = dic.TableName;
-        
-        resp.push(obj);
-        id = id + 1;
+        //console.log('_form.ColumnList=',_form.ColumnList);
+        const rows = await pg.findAll({
+            Schema: _module.ModuleName,
+            TableName: _form.TableName,
+            ColumnList: _form.ColumnList
+        });
+        //console.log('rows=', rows); 
+        response = rows.map((row) => {
+            return {
+                id: row.id,
+                Name: row.Name ? row.Name : '',
+                Description: row.Description ? row.Description : ''
+            };
+        });
+
+    } else if (id > 0) {
+        const _form = new _module[form][form]({
+            id: 1
+        });
+        const data = await pg.findByID({
+            Schema: _module.ModuleName,
+            TableName: _form.TableName,
+            ColumnList: _form.ColumnList,
+            id
+        });
+        //console.log('resp=',resp);
+        const formData = new _module[form][form](data);
+        console.log('formData=', formData);
+        response = formData;
     };
-    return response = resp;
+
+    return response;
 };
 
 /**
@@ -107,6 +189,7 @@ async function dicJournal_get({
  * @param {Object.<string, string>} module наименование модуля 
  * @returns {Object.<string, string>} [{Name,Description}]
  */
+/*
 async function dicList_get({
     TableName,
     id = 0,
@@ -119,7 +202,7 @@ async function dicList_get({
     const dicList = Object.keys(dictionaryModels);
     //Если такой Модели - Таблицы нет в модуле
     if (!dicList.some(row => TableName)) return response.Error = 'Error, dont find table';
-        
+
     const dicModel = new dictionaryModels[TableName]({
         id: 1
     });
@@ -133,7 +216,7 @@ async function dicList_get({
             TableName,
             ColumnList
         });
-        
+
     } else if (id > 0) {
         data = await pg.findByID({
             Schema: module,
@@ -146,22 +229,26 @@ async function dicList_get({
 
     return response = data ? data : [];
 };
-
+*/
 module.exports.post = async (ctx) => {
     console.log("post_body:", ctx.request.body);
-    let type = ctx.request.body.type; //Тип окна
-    let tableID = ctx.request.body.tableID; //id таблицы tableList
-    let columnList = ctx.request.body.columnList; //{} с полями и их значениями
+    //let type = ctx.request.body.type; //Тип окна
+    //let tableID = ctx.request.body.tableID; //id таблицы tableList
+    //let TableName = ctx.request.body.TableName;
+    //let columnList = ctx.request.body.columnList; //{} с полями и их значениями
     let response = {};
+    const module = ctx.request.body.module;
+    const form = ctx.request.body.form;
+    const data = ctx.request.body.data; //{} с полями и их значениями
 
-    switch (type) {
+    /*switch (type) {
         //case 'docJournal':
         //    response = await pg.createDocDictionary();
         //    break;
 
         case 'dic':
             response = await createDic({
-                TableID: tableID,
+                TableName: TableName,
                 columnList
             });
             break;
@@ -169,20 +256,20 @@ module.exports.post = async (ctx) => {
         default:
             response.Error = 'Error, dont find type';
             break;
-    };
+    };*/
     //console.log('response=', response);
     //Преобразуем JSON в текст
     ctx.response.body = JSON.stringify(response);
 };
 
 async function createDic({
-    TableID,
+    TableName,
     columnList
 }) {
     let response = {};
     const Content = {
         Schema: 'useradmin',
-        TableID,
+        TableName,
         columnList
     };
     response = await pg.create(Content);
@@ -229,20 +316,41 @@ module.exports.migrateDB = async (ctx) => {
 
     let assistant_modules = config.assistant_modules;
 
-    for await (const module of assistant_modules) {
+    for await (const _module of assistant_modules) {
 
-        //Перебираем объекты из файла модуля schema.js
-        const {
-            Schema,
-            TableList,
-            СolumnList
-        } = require('./../assistant_modules/' + module + '/schema.js');
+        //Перебираем объекты из файла модуля module.js
+        const module = require('./../assistant_modules/' + _module + '/module.js');
 
         //Добавляем новую схему
-        const schema = new Schema();
-        response = await schema_add([schema]);
+        const SchemaName = module.ModuleName;
+        response = await schema_add([SchemaName]);
         resp.push(response);
 
+        //Перебираем формы из модуля
+        const FormList = module.FormList;
+        //const dicList = Object.keys(dictionaryModels);
+        for await (const FormName of FormList) {
+
+            const TableModel = new module[FormName][FormName]({
+                id: 1
+            });
+            //console.log('form=',form.TableName);
+
+            //Добавляем таблицу в новой схеме
+            response = await table_add([{
+                SchemaName: SchemaName,
+                TableName: TableModel.TableName
+            }]);
+            resp.push(response);
+
+            //Добавляем столбцы в новой схеме        
+            response = await column_add([{
+                SchemaName: SchemaName,
+                TableModel: TableModel
+            }]);
+            resp.push(response);
+        };
+        /*
         //Добавляем таблицу tableList в новой схеме
         const tableList = new TableList();
         response = await table_add([{
@@ -272,65 +380,57 @@ module.exports.migrateDB = async (ctx) => {
             Table: columnList
         }]);
         resp.push(response);
+*/
+        /*
+                    //Добавляем таблицу справочника в таблицу tableList
+                    response = await tableList_add([{
+                        Schema: schema,
+                        Table: dic,
+                        Type: 'dictionary'
+                    }]);
+                    resp.push(response);
 
-        //Перебираем объекты из файла модуля dic.js
-        const dictionaryModels = require('./../assistant_modules/' + module + '/dic.js');
-        const dicList = Object.keys(dictionaryModels);
-        for await (const dicModel of dicList) {
-
-            const dic = new dictionaryModels[dicModel]();
-            //console.log('dic=',dic);
-
-            //Добавляем таблицу справочника в таблицу tableList
-            response = await tableList_add([{
-                Schema: schema,
-                Table: dic,
-                Type: 'dictionary'
-            }]);
-            resp.push(response);
-
-            //Добавляем таблицу справочника в новой схеме
-            response = await table_add([{
-                Schema: schema,
-                Table: dic
-            }]);
-            resp.push(response);
+                    //Добавляем таблицу справочника в новой схеме
+                    response = await table_add([{
+                        Schema: schema,
+                        Table: dic
+                    }]);
+                    resp.push(response);
 
 
-            //Добавляем столбцы таблицы справочника в таблицу columnList
-            response = await columnList_add([{
-                Schema: schema,
-                Table: dic,
-                Type: 'dictionary'
-            }]);
-            resp.push(response);
-            //Добавляем столбцы справочника в новой схеме        
-            response = await column_add([{
-                Schema: schema,
-                Table: dic
-            }]);
-            resp.push(response);
-        };
+                    //Добавляем столбцы таблицы справочника в таблицу columnList
+                    response = await columnList_add([{
+                        Schema: schema,
+                        Table: dic,
+                        Type: 'dictionary'
+                    }]);
+                    resp.push(response);
+                    //Добавляем столбцы справочника в новой схеме        
+                    response = await column_add([{
+                        Schema: schema,
+                        Table: dic
+                    }]);
+                    resp.push(response);
 
-        //Перебираем объекты из файла модуля doc.js
-        const documentModels = require('./../assistant_modules/' + module + '/doc.js');
-        const docList = Object.keys(documentModels);
-        for await (const docModel of docList) {
-            //Добавляем таблицу справочника в новой схеме
-            const doc = new documentModels[docModel]();
-            response = await table_add([{
-                Schema: schema,
-                Table: doc
-            }]);
-            resp.push(response);
+                //Перебираем объекты из файла модуля doc.js
+                const documentModels = require('./../assistant_modules/' + module + '/doc.js');
+                const docList = Object.keys(documentModels);
+                for await (const docModel of docList) {
+                    //Добавляем таблицу справочника в новой схеме
+                    const doc = new documentModels[docModel]();
+                    response = await table_add([{
+                        Schema: schema,
+                        Table: doc
+                    }]);
+                    resp.push(response);
 
-            //Добавляем столбцы справочника в новой схеме        
-            response = await column_add([{
-                Schema: schema,
-                Table: doc
-            }]);
-            resp.push(response);
-        };
+                    //Добавляем столбцы справочника в новой схеме        
+                    response = await column_add([{
+                        Schema: schema,
+                        Table: doc
+                    }]);
+                    resp.push(response);
+                };*/
     };
 
     //Преобразуем JSON в текст
@@ -489,22 +589,22 @@ async function serviceTables_add() {
  * @param {Object[]} schemaModels объект класса Schema 
  * @returns {Object.<string, string>} - информация: Message или Error.
  */
-async function schema_add(schemaModels = []) {
+async function schema_add(schemaNames = []) {
     let response = {};
     let resp = [];
 
-    for await (const schemaModel of schemaModels) {
+    for await (const SchemaName of schemaNames) {
         //Узнаём  информацию о схеме в БД
         const Content = {
             Type: 'schema',
-            Name: schemaModel.SchemaName
+            Name: SchemaName
         };
         const db_schemaInfo = await pg.dbInfo(Content);
         //console.log('db_schemaInfo=', db_schemaInfo);
         //Еслисхемы нет - создаём
         if (!db_schemaInfo.Exists) {
             response = await pg.createSchema({
-                Name: schemaModel.SchemaName
+                Name: SchemaName
             });
             resp.push(response);
         };
@@ -525,8 +625,8 @@ async function table_add(tableModels = []) {
         //Узнаём  информацию о таблице в БД
         const Content = {
             Type: 'table',
-            Schema: tableModel.Schema.SchemaName,
-            Name: tableModel.Table.TableName
+            Schema: tableModel.SchemaName,
+            Name: tableModel.TableName
         };
         const db_tableInfo = await pg.dbInfo(Content);
         //console.log('db_tableInfo=',db_tableInfo);
@@ -535,8 +635,8 @@ async function table_add(tableModels = []) {
         if (!db_tableInfo.Exists) {
             const Entity = {
                 Type: 'table',
-                Schema: tableModel.Schema.SchemaName,
-                Name: tableModel.Table.TableName,
+                Schema: tableModel.SchemaName,
+                Name: tableModel.TableName,
                 Method: 'create'
             };
             response = await pg.entityChange(Entity);
@@ -559,20 +659,21 @@ async function column_add(tableModels = []) {
 
     for await (const tableModel of tableModels) {
         //Узнаём информацию какие столбцы надо создать
-        const columnList_needAdd = tableModel.Table.columnList_get();
+        const columnList_needAdd = tableModel.TableModel.ColumnList;
+        //console.log('tableModel.TableModel.TableName=',tableModel.TableModel.TableName);
 
         //Узнаём  информацию о таблице в БД и о её полях
         const Content = {
             Type: 'table',
-            Schema: tableModel.Schema.SchemaName,
-            Name: tableModel.Table.TableName
+            Schema: tableModel.SchemaName,
+            Name: tableModel.TableModel.TableName
         };
         const db_tableInfo = await pg.dbInfo(Content);
         //console.log('db_tableInfo=',db_tableInfo);
 
         for await (const column of columnList_needAdd) {
             //Есть ли столбец в таблице в БД
-            const haveColumn = db_tableInfo.columnList.some(row => row.column_name == column.ColumnName);
+            const haveColumn = db_tableInfo.columnList.some(row => row.column_name == column);
             //Если столбца в таблице в БД нет - добавляем
             if (!haveColumn) columnList.push(column);
         };
@@ -580,9 +681,10 @@ async function column_add(tableModels = []) {
         const Entity = {
             Type: 'table',
             Method: 'alter',
-            Schema: tableModel.Schema.SchemaName,
-            Name: tableModel.Table.TableName,
-            columnList: columnList
+            Schema: tableModel.SchemaName,
+            Name: tableModel.TableModel.TableName,
+            columnList: columnList,
+            TableModel: tableModel.TableModel
         };
         //console.log('Entity=',Entity);
         response = await pg.entityChange(Entity);
