@@ -33,8 +33,9 @@ async function findByID({
     const client = await pool.connect();
     try {
         query = 'SELECT ' + columnList.toString() + ' FROM "' + Schema.toString() + '"."' + TableName.toString() + '" WHERE id = $1';
-            const tableData = await client.query(query, [id]);
-            response = tableData.rows[0];
+        //console.log('query=',query);
+        const tableData = await client.query(query, [id]);
+        response = tableData.rows[0];
 
         /*res = await client.query('SELECT * FROM document WHERE id = $1', [docID]);
         console.log('res=', res.rows[0]);
@@ -65,12 +66,14 @@ async function findAll({
     let response = {};
     let res = {};
     let query = '';
+    if (!Schema) return response.Error = 'Schema is null';
+    if (!TableName) return response.Error = 'TableName is null';
     const columnList = ColumnList.map(col => '"' + col + '"').join(',');
 
     const client = await pool.connect();
     try {
         //Если есть where - ищем по условию в таблице документа
-        if (where && TableID) {
+        if (where) {
             /*res = await client.query('SELECT * FROM document WHERE id = $1', [docID]);
             console.log('res=', res.rows[0]);
             const doc = res.rows[0];
@@ -83,7 +86,7 @@ async function findAll({
             //const doc = await client.query(query);
 
             //console.log('doc=', doc.rows[0]);
-            query = 'SELECT ' + columnList.toString() + ' FROM "' + Schema.toString() + '"."' + TableName.toString() + '"';
+            query = 'SELECT ' + columnList.toString() + ' FROM "' + Schema.toString() + '"."' + TableName.toString() + '" ORDER BY "id"';
             const tableData = await client.query(query);
             response = tableData.rows;
         } else {
@@ -227,22 +230,22 @@ async function columnListInfo({
 
 async function create({
     Schema,
-    TableID,
-    columnList = {}
+    TableName
 } = {}) {
     let response = {};
-    let res = {};
-    if (!TableID) return response.Error = 'TableID is null';
+    if (!Schema) return response.Error = 'Schema is null';
+    if (!TableName) return response.Error = 'TableName is null';
 
     let query = '';
 
-    let columns = '';
-    let values = '';
-    let variable = [];
-    let id = 1;
-
     const client = await pool.connect();
     try {
+        query = 'INSERT INTO "' + Schema.toString() + '"."' + TableName.toString() + '" ("Name") VALUES ($1)';
+        console.log('query=',query);
+        const tableData = await client.query(query, ['newRow']);
+        //response = tableData.rows[0];
+        response = 'New data add';
+        /*
         query = 'SELECT * FROM "' + Schema.toString() + '"."tableList" WHERE "id" = ' + TableID.toString();
         res = await client.query(query);
         const docModel = res.rows[0];
@@ -252,7 +255,7 @@ async function create({
         res = await client.query(query);
         const docColumnModel = res.rows;
         console.log('docColumnModel=', docColumnModel);
-
+*/
         //query = 'INSERT INTO "' + Schema.toString() + '"."'+docModel.TableName.toString()+'" ("Name", "ColumnName", "Description", "DataType", "TableID") VALUES (';
         //query = query + name + ',' + columnName + ',' + description + ',' + datatype + ',' + tableID + ')';
         /* res = await client.query('SELECT * FROM doccolumn WHERE docid = $1', [docID]);
@@ -522,10 +525,10 @@ async function entityChange({
                 //Если есть columnList
                 if (columnList) {
                     for await (const column of columnList) {
-                        const _columnGet = columnGet(column,TableModel);
+                        const _columnGet = columnGet(column, TableModel);
                         if (_columnGet.Error) throw new UserException(_columnGet.Error);
-                        query = 'ALTER TABLE "' + Schema.toString() + '"."' + Name.toString() + '" ADD COLUMN ' + _columnGet.column;
-                        //console.log('query=', query);
+                        query = 'ALTER TABLE "' + Schema.toString() + '"."' + Name.toString() + '" ADD COLUMN ' + _columnGet.column + ';';
+                        console.log('query=', query);
                         await pool.query(query);
                         resp.push(query);
                     };
@@ -556,7 +559,7 @@ function UserException(message) {
  * @param {Object.<string, string>} columnList - массив объектов с опиманием полей
  * @returns {Object.<string, string>} - response.Error или response.column
  */
-function columnGet(column,TableModel) {
+function columnGet(column, TableModel) {
     let response = {};
     if (!column) return response.Error = 'columnList is null';
 
@@ -567,10 +570,10 @@ function columnGet(column,TableModel) {
     if (!datatype) return response.Error = 'DataType is null';
 
     let allowNull = 'true'; // По умолчанию true
-    if (TableModel[column].AllowNull== 'false') allowNull = ' NOT NULL '
+    if (TableModel[column].AllowNull == 'false') allowNull = ' NOT NULL '
     else allowNull = ' NULL ';
 
-    let _default = TableModel[column].Default ? ' DEFAULT ' + TableModel[column].Default : '';
+    let _default = TableModel[column].Default ? ` DEFAULT '` + TableModel[column].Default + `'` : '';
 
     let unique = 'false'; //По умолчанию false
     if (TableModel[column].Unique == 'true') unique = ' UNIQUE '
@@ -676,11 +679,76 @@ async function createSchema({
     return response;
 };
 
+async function deleteRow({
+    Schema,
+    TableName,
+    ColumnList
+} = {}) {
+    let response = {};
+    let res = {};
+    if (!Schema) return response.Error = 'Schema is null';
+    if (!TableName) return response.Error = 'TableName is null';
+    if (!ColumnList) return response.Error = 'ColumnList is null';
+
+    let query = '';
+
+    const client = await pool.connect();
+    try {
+        const columnList = ColumnList.map(row => row.id).join(',');
+        query = 'DELETE FROM "' + Schema.toString() + '"."' + TableName.toString() + '" WHERE id IN (' + columnList.toString() + ')';
+        const tableData = await client.query(query);
+        response = 'Rows DELETED';
+    } catch (error) {
+        console.log(error.stack);
+        response.Error = error.stack;
+    } finally {
+        client.release();
+    };
+    return response;
+};
+
+async function updateRow({
+    Schema,
+    TableName,
+    ColumnList
+} = {}) {
+    let response = {};
+    let res = {};
+    if (!Schema) return response.Error = 'Schema is null';
+    if (!TableName) return response.Error = 'TableName is null';
+    if (!ColumnList) return response.Error = 'ColumnList is null';
+    let query = '';
+    const keyArray = Object.keys(ColumnList);
+    keyArray.forEach((_key) => {
+        const key = _key.substring(1, _key.length).toString();
+        if (key != 'id') {
+            const column = '"' + key + '"=';
+            const value = ColumnList[key].Value ? `'` + ColumnList[key].Value.toString() + `'` : 'null';
+            query = query ? query + ',' : query;
+            query = query + column + value;
+        }
+    });
+    const client = await pool.connect();
+    try {
+        query = 'UPDATE "' + Schema.toString() + '"."' + TableName.toString() + '" SET ' + query + ' WHERE "id" = $1';
+        console.log('query=', query,ColumnList.id.Value);
+        const tableData = await client.query(query,[ColumnList.id.Value]);
+        response = 'Rows UPDATED';
+    } catch (error) {
+        console.log(error.stack);
+        response.Error = error.stack;
+    } finally {
+        client.release();
+    };
+    return response;
+};
 
 module.exports = {
     findByID,
     findAll,
     create,
+    deleteRow,
+    updateRow,
 
 
     createTable,

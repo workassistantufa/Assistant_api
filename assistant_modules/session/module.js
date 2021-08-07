@@ -2,8 +2,8 @@ const DocMovement = require('./DocMovement.js');
 const Entity = require('./Entity.js');
 
 module.exports = {
-    ModuleName: 'useradmin',
-    Description: 'Модуль администрирования пользователей',
+    ModuleName: 'session',
+    Description: 'Модуль администрирования сессий пользователей и клиентов',
     FormList: ['DocMovement','Entity'],
     DocMovement,
     Entity

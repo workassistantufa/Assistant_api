@@ -1,56 +1,57 @@
 const Column = require('./../column.js');
 
-const DocMovement = class {
+const Material = class {
     constructor({
         id = null,
-        Type = null,
-        User_id = null,
+        Name = null,
+        Description = null,
         Client_id = null,
+        Contractor_id = null,
         DateBegin = null,
         DateEnd = null
     } = {}) {
         this.id = id;
-        this.Type = Type; //User or Client
-        this.User_id = User_id;
+        this.Name = Name;
+        this.Description = Description;
         this.Client_id = Client_id;
+        this.Contractor_id = Contractor_id;
         this.DateBegin = DateBegin;
         this.DateEnd = DateEnd;
     }
 
     get ColumnList() {
-        return ['id', 'Type', 'User_id', 'Client_id', 'DateBegin', 'DateEnd'];
+        return ['id', 'Name', 'Description', 'Client_id', 'Contractor_id', 'DateBegin', 'DateEnd'];
     }
-    get TableName() {
-        return 'DocMovement';
+    get TableName(){
+        return 'Material';
     }
-    get FormDescription() {
-        return 'Сессии пользователя или клиента';
+    get FormDescription(){
+        return 'Справочник номенклатуры';
     }
+    
     get id() {
         return this._id;
     }
-    set id(value = 0) {
+    set id(value) {
         this._id = new Column.id({
             Value: value
         });
     }
 
-    get Type() {
-        return this._Type;
+    get Name() {
+        return this._Name;
     }
-    set Type(value) {
-        const validValue = ['User', 'Client'];
-        if (!validValue.some(r => r == value)) throw new Error("Ошибка: DocMovement.Type must be: ['User','Client']");
-        this._Type = new Column.Type({
+    set Name(value) {
+        this._Name = new Column.Name({
             Value: value,
             AllowNull: 'false'
         });
     }
-    get User_id() {
-        return this._User_id;
+    get Description() {
+        return this._Description;
     }
-    set User_id(value) {
-        this._User_id = new Column.User_id({
+    set Description(value) {
+        this._Description = new Column.Description({
             Value: value
         });
     }
@@ -59,6 +60,14 @@ const DocMovement = class {
     }
     set Client_id(value) {
         this._Client_id = new Column.Client_id({
+            Value: value
+        });
+    }
+    get Contractor_id() {
+        return this._Contractor_id;
+    }
+    set Contractor_id(value) {
+        this._Contractor_id = new Column.Contractor_id({
             Value: value
         });
     }
@@ -79,9 +88,8 @@ const DocMovement = class {
             Value: value
         });
     }
-
 };
 
 module.exports = {
-    DocMovement
+    Material
 };

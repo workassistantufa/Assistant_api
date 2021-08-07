@@ -3,6 +3,7 @@ const fs = require('fs');
 const util = require('util');
 //const exec = util.promisify(require('child_process').exec);
 const config = require('.././config.js');
+const crypto = require('crypto');
 
 /**
  * route module.
@@ -55,22 +56,6 @@ module.exports.get = async (ctx) => {
         });
     };
 
-    /*
-        switch (module) {
-            case 'dictionary':
-                response = await module_get({
-                    form,
-                    id
-                });
-                break;
-
-
-
-            default:
-                response.Error = 'Error, dont find module';
-                break;
-        };
-    */
     //let module = 'useradmin';
     //const dictionaryModels = require('./../assistant_modules/' + module + '/dic.js');
     //const {id} = require('./../assistant_modules/column.js');
@@ -184,52 +169,6 @@ async function module_get({
     return response;
 };
 
-/**
- * Значения справочника
- * @param {Object.<string, string>} module наименование модуля 
- * @returns {Object.<string, string>} [{Name,Description}]
- */
-/*
-async function dicList_get({
-    TableName,
-    id = 0,
-    module = 'useradmin'
-} = {}) {
-    let response = {};
-    let data = [];
-
-    const dictionaryModels = require('./../assistant_modules/' + module + '/dic.js');
-    const dicList = Object.keys(dictionaryModels);
-    //Если такой Модели - Таблицы нет в модуле
-    if (!dicList.some(row => TableName)) return response.Error = 'Error, dont find table';
-
-    const dicModel = new dictionaryModels[TableName]({
-        id: 1
-    });
-    //console.log('dicModel=', dicModel);
-    const ColumnList = dicModel.ColumnList;
-    //console.log('ColumnList=', ColumnList); 
-
-    if (id == 0) { //Реестр справочника                   
-        data = await pg.findAll({
-            Schema: module,
-            TableName,
-            ColumnList
-        });
-
-    } else if (id > 0) {
-        data = await pg.findByID({
-            Schema: module,
-            TableName,
-            ColumnList,
-            id
-        });
-    }
-    //console.log('data=', data);
-
-    return response = data ? data : [];
-};
-*/
 module.exports.post = async (ctx) => {
     console.log("post_body:", ctx.request.body);
     //let type = ctx.request.body.type; //Тип окна
@@ -241,75 +180,200 @@ module.exports.post = async (ctx) => {
     const form = ctx.request.body.form;
     const data = ctx.request.body.data; //{} с полями и их значениями
 
-    /*switch (type) {
-        //case 'docJournal':
-        //    response = await pg.createDocDictionary();
-        //    break;
+    if (module == 'session') response = await auth(data);
 
-        case 'dic':
-            response = await createDic({
-                TableName: TableName,
-                columnList
-            });
-            break;
+    else if (module && form) {
+        response = await addData({
+            module,
+            form,
+            data
+        });
+    };
 
-        default:
-            response.Error = 'Error, dont find type';
-            break;
-    };*/
-    //console.log('response=', response);
     //Преобразуем JSON в текст
     ctx.response.body = JSON.stringify(response);
 };
 
-async function createDic({
-    TableName,
-    columnList
-}) {
+async function auth(data = {}) {
     let response = {};
-    const Content = {
-        Schema: 'useradmin',
-        TableName,
-        columnList
+
+    const moduleDictionary = require('./../assistant_modules/dictionary/module.js');
+    let form = new moduleDictionary.User.User({
+        id: 1
+    });
+    let rows = await pg.findAll({
+        Schema: moduleDictionary.ModuleName,
+        TableName: form.TableName,
+        ColumnList: form.ColumnList
+    });
+
+    const correctUser = rows.filter(row => row.Login == data.Login && row.Password == data.Password);
+    //console.log('correctUser=',correctUser);
+    if(!correctUser[0]) return response = {Error: 'Error login or password'};
+
+    const moduleSession = require('./../assistant_modules/session/module.js');
+    form = new moduleSession.DocMovement.DocMovement({
+        id: correctUser[0].id,
+        Type: 'User'
+    });
+
+    rows = await pg.findAll({
+        Schema: moduleSession.ModuleName,
+        TableName: form.TableName,
+        ColumnList: form.ColumnList
+    });
+    const haveRecordDocMovement = rows.some(row => row.User_id == correctUser[0].id);
+    //console.log('haveRecord=',haveRecord);
+    if (!haveRecordDocMovement) {
+        response = await pg.create({
+            Schema: moduleSession.ModuleName,
+            TableName: form.TableName
+        });
+        rows = await pg.findAll({
+            Schema: moduleSession.ModuleName,
+            TableName: form.TableName,
+            ColumnList: form.ColumnList
+        });
+        console.log('rows=', rows);
+        let lastID = 0;
+        rows.forEach((row) => {
+            if (row.id >= lastID) lastID = row.id;
+        });
+
+        response = await addData({
+            module: moduleSession.ModuleName,
+            form: form.TableName,
+            data: {
+                id: lastID,
+                Type: 'User',
+                User_id: correctUser[0].id
+            }
+        });
     };
-    response = await pg.create(Content);
+
+    rows = await pg.findAll({
+        Schema: moduleSession.ModuleName,
+        TableName: form.TableName,
+        ColumnList: form.ColumnList
+    });
+
+    const docMovement = rows.find(row => row.User_id == correctUser[0].id);
+    //console.log('docMovement=',docMovement);
+
+    form = new moduleSession.Entity.Entity({
+        id: correctUser[0].id
+    });
+
+    //console.log('form=',form);
+
+    rows = await pg.findAll({
+        Schema: moduleSession.ModuleName,
+        TableName: form.TableName,
+        ColumnList: form.ColumnList
+    });
+
+    let entity = rows.find(row => row.Parent == docMovement.id);
+
+    if (!entity) {
+        response = await pg.create({
+            Schema: moduleSession.ModuleName,
+            TableName: form.TableName
+        });
+        rows = await pg.findAll({
+            Schema: moduleSession.ModuleName,
+            TableName: form.TableName,
+            ColumnList: form.ColumnList
+        });
+        //console.log('rows=',rows);
+        let lastID = 0;
+        rows.forEach((row) => {
+            if (row.id >= lastID) lastID = row.id;
+        });
+
+        //Генрируем токен
+        const Token = await crypto.randomBytes(64).toString('hex');
+        const DateBegin = (new Date()).getTime();
+        const timeToLife = 10000000000;
+        const DateEnd = DateBegin + timeToLife;
+
+        //console.log('Token=',Token);
+
+        //console.log(new Date(),new Date(DateBegin));
+
+        response = await addData({
+            module: moduleSession.ModuleName,
+            form: form.TableName,
+            data: {
+                id: lastID,
+                Parent: docMovement.id,
+                Token: Token,
+                //DateBegin: new Date(DateBegin),
+                //DateEnd: new Date(DateEnd)
+            }
+        });
+        rows = await pg.findAll({
+            Schema: moduleSession.ModuleName,
+            TableName: form.TableName,
+            ColumnList: form.ColumnList
+        });
+
+        entity = rows.find(row => row.Parent == docMovement.id);
+    };
+    //console.log('entity=', entity);
+    return response = {
+        Token: entity.Token
+    };
+};
+
+async function addData({
+    module,
+    form,
+    data
+} = {}) {
+    let response = {};
+    if (!data) {
+        const Content = {
+            Schema: module,
+            TableName: form
+        };
+        response = await pg.create(Content);
+    } else {
+        const _module = require('./../assistant_modules/' + module + '/module.js');
+        const haveForm = _module.FormList.some(r => r == form);
+        if (haveForm) { //Если такая форма действительно есть
+            const _form = new _module[form][form](data);
+            console.log('_form=', _form);
+
+            const Content = {
+                Schema: module,
+                TableName: form,
+                ColumnList: _form
+            };
+            response = await pg.updateRow(Content);
+        };
+    };
+
     return response;
 };
 
-/*
-
 module.exports.delete = async (ctx) => {
     console.log("delete.query:", ctx.query);
-    let type = ctx.query.type; //Тип окна docID
-    let docID = ctx.query.docID; //id таблицы Documents
-    let id = ctx.query.id; //id через запятую
     let response = {};
+    const module = ctx.request.body.module;
+    const form = ctx.request.body.form;
+    const columnList = ctx.request.body.columnList; //{} с [{row.id}]
 
-    switch (type) {
-        case 'documentConstructor':
-            response = await prisma.delete({
-                docModelName: 'document',
-                docID,
-                id
-            });
-            break;
-
-        case 'documentConstructorColumn':
-            response = await prisma.delete({
-                docModelName: 'docColumn',
-                docID,
-                id
-            });
-            break;
-
-        default:
-            response.error = 'Error, dont find type';
-            break;
+    const Content = {
+        Schema: module,
+        TableName: form,
+        ColumnList: columnList
     };
+    response = await pg.deleteRow(Content);
+
     console.log("delete_response:", response);
     ctx.response.body = response;
 };
-*/
+
 module.exports.migrateDB = async (ctx) => {
     let response = {};
     let resp = [];
@@ -330,7 +394,7 @@ module.exports.migrateDB = async (ctx) => {
         const FormList = module.FormList;
         //const dicList = Object.keys(dictionaryModels);
         for await (const FormName of FormList) {
-
+            //console.log('FormName=',FormName);
             const TableModel = new module[FormName][FormName]({
                 id: 1
             });

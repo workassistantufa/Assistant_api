@@ -186,9 +186,6 @@ const User_id = class extends Column {
     get DataType() {
         return 'Bigint ';
     }
-    get References() {
-        return 'User (id)'
-    }
 };
 
 const Client_id = class extends Column {
@@ -201,8 +198,125 @@ const Client_id = class extends Column {
     get DataType() {
         return 'Bigint ';
     }
-    get References() {
-        return 'Client (id)'
+};
+
+const Token = class extends Column {
+    constructor(...args) {
+        super(...args);
+    }
+    get ColumnName() {
+        return 'Token';
+    }
+    get DataType() {
+        return 'Text ';
+    }
+};
+
+const Contractor_id = class extends Column {
+    constructor(...args) {
+        super(...args);
+    }
+    get ColumnName() {
+        return 'Contractor_id';
+    }
+    get DataType() {
+        return 'Bigint ';
+    }
+};
+
+const Adress = class extends Column {
+    constructor(...args) {
+        super(...args);
+    }
+    get ColumnName() {
+        return 'Adress';
+    }
+    get DataType() {
+        return 'Text ';
+    }
+};
+
+const Telefon = class extends Column {
+    constructor(...args) {
+        super(...args);
+    }
+    get ColumnName() {
+        return 'Telefon';
+    }
+    get DataType() {
+        return 'Text ';
+    }
+};
+
+const Nomer = class extends Column {
+    constructor(...args) {
+        super(...args);
+    }
+    get ColumnName() {
+        return 'Nomer';
+    }
+    get DataType() {
+        return 'Text ';
+    }
+};
+
+const Date = class extends Column {
+    constructor(...args) {
+        super(...args);
+    }
+    get ColumnName() {
+        return 'Date';
+    }
+    get DataType() {
+        return 'Timestamp ';
+    }
+};
+
+const PartNumber = class extends Column {
+    constructor(...args) {
+        super(...args);
+    }
+    get ColumnName() {
+        return 'PartNumber';
+    }
+    get DataType() {
+        return 'Bigint ';
+    }
+};
+
+const Storage_id = class extends Column {
+    constructor(...args) {
+        super(...args);
+    }
+    get ColumnName() {
+        return 'Storage_id';
+    }
+    get DataType() {
+        return 'Bigint ';
+    }
+};
+
+const Quantity = class extends Column {
+    constructor(...args) {
+        super(...args);
+    }
+    get ColumnName() {
+        return 'Quantity';
+    }
+    get DataType() {
+        return 'numeric';
+    }
+};
+
+const Summa = class extends Column {
+    constructor(...args) {
+        super(...args);
+    }
+    get ColumnName() {
+        return 'Summa';
+    }
+    get DataType() {
+        return 'money';
     }
 };
 
@@ -217,7 +331,17 @@ module.exports = {
     Parent,
     Type,
     User_id,
-    Client_id
+    Client_id,
+    Token,
+    Contractor_id,
+    Adress,
+    Telefon,
+    Nomer,
+    Date,
+    PartNumber,
+    Storage_id,
+    Quantity,
+    Summa
 };
 
 /*

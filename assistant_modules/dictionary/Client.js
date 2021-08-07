@@ -1,6 +1,6 @@
 const Column = require('./../column.js');
 
-const Сlient = class {
+const Client = class {
     constructor({
         id = null,
         Name = null,
@@ -23,7 +23,7 @@ const Сlient = class {
         return ['id', 'Name', 'Description', 'Login', 'Password', 'DateBegin', 'DateEnd'];
     }
     get TableName(){
-        return 'Сlient';
+        return 'Client';
     }
     get FormDescription(){
         return 'Справочник клиентов';
@@ -91,5 +91,5 @@ const Сlient = class {
 };
 
 module.exports = {
-    Сlient
+    Client
 };

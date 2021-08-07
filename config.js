@@ -10,7 +10,7 @@ module.exports.dbConfig = {
 }
 
 //Список подключенных модулей 
-module.exports.assistant_modules = ['dictionary'];
+module.exports.assistant_modules = ['dictionary','session','storage'];
 
 
 //Подключение к БД sqlite3/main.db Windows
