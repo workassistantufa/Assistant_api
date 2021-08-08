@@ -196,8 +196,10 @@ module.exports.post = async (ctx) => {
 
 async function auth(data = {}) {
     let response = {};
+    let newRow = {};
 
     const moduleDictionary = require('./../assistant_modules/dictionary/module.js');
+    //Ищем id в таблице User по Login и Password
     let form = new moduleDictionary.User.User({
         id: 1
     });
@@ -206,122 +208,75 @@ async function auth(data = {}) {
         TableName: form.TableName,
         ColumnList: form.ColumnList
     });
-
-    const correctUser = rows.filter(row => row.Login == data.Login && row.Password == data.Password);
+    const correctUser = rows.find(row => row.Login == data.Login && row.Password == data.Password);
     //console.log('correctUser=',correctUser);
-    if(!correctUser[0]) return response = {Error: 'Error login or password'};
 
+    if (!correctUser) return response = {
+        Error: 'Error login or password'
+    };
+
+    //Ищем код DocMovement по данному correctUser
     const moduleSession = require('./../assistant_modules/session/module.js');
     form = new moduleSession.DocMovement.DocMovement({
-        id: correctUser[0].id,
+        id: correctUser.id,
         Type: 'User'
     });
-
     rows = await pg.findAll({
         Schema: moduleSession.ModuleName,
         TableName: form.TableName,
         ColumnList: form.ColumnList
     });
-    const haveRecordDocMovement = rows.some(row => row.User_id == correctUser[0].id);
+    let rowDocMovement = rows.some(row => row.User_id == correctUser.id);
     //console.log('haveRecord=',haveRecord);
-    if (!haveRecordDocMovement) {
-        response = await pg.create({
+
+    //Если в таблице DocMovement нет такого correctUser - создаём
+    if (!rowDocMovement) {
+        newRow = await pg.create({
             Schema: moduleSession.ModuleName,
             TableName: form.TableName
         });
-        rows = await pg.findAll({
-            Schema: moduleSession.ModuleName,
-            TableName: form.TableName,
-            ColumnList: form.ColumnList
-        });
-        console.log('rows=', rows);
-        let lastID = 0;
-        rows.forEach((row) => {
-            if (row.id >= lastID) lastID = row.id;
-        });
-
         response = await addData({
             module: moduleSession.ModuleName,
             form: form.TableName,
             data: {
-                id: lastID,
+                id: newRow.id,
                 Type: 'User',
-                User_id: correctUser[0].id
+                User_id: correctUser.id
             }
         });
+        rowDocMovement = newRow;
     };
 
-    rows = await pg.findAll({
-        Schema: moduleSession.ModuleName,
-        TableName: form.TableName,
-        ColumnList: form.ColumnList
-    });
-
-    const docMovement = rows.find(row => row.User_id == correctUser[0].id);
-    //console.log('docMovement=',docMovement);
-
+    //Создаём запись в Entity
     form = new moduleSession.Entity.Entity({
-        id: correctUser[0].id
+        id: correctUser.id
     });
-
-    //console.log('form=',form);
-
-    rows = await pg.findAll({
+    newRow = await pg.create({
         Schema: moduleSession.ModuleName,
-        TableName: form.TableName,
-        ColumnList: form.ColumnList
+        TableName: form.TableName
     });
 
-    let entity = rows.find(row => row.Parent == docMovement.id);
+    //Генрируем токен
+    const Token = await crypto.randomBytes(64).toString('hex');
+    const DateBegin = (new Date()).getTime();
+    const timeToLife = 10000000000;
+    const DateEnd = DateBegin + timeToLife;
 
-    if (!entity) {
-        response = await pg.create({
-            Schema: moduleSession.ModuleName,
-            TableName: form.TableName
-        });
-        rows = await pg.findAll({
-            Schema: moduleSession.ModuleName,
-            TableName: form.TableName,
-            ColumnList: form.ColumnList
-        });
-        //console.log('rows=',rows);
-        let lastID = 0;
-        rows.forEach((row) => {
-            if (row.id >= lastID) lastID = row.id;
-        });
+    //Записываем токен в БД в Entity
+    await addData({
+        module: moduleSession.ModuleName,
+        form: form.TableName,
+        data: {
+            id: newRow.id,
+            Parent: rowDocMovement.id,
+            Token: Token,
+            //DateBegin: new Date(DateBegin),
+            //DateEnd: new Date(DateEnd)
+        }
+    });
 
-        //Генрируем токен
-        const Token = await crypto.randomBytes(64).toString('hex');
-        const DateBegin = (new Date()).getTime();
-        const timeToLife = 10000000000;
-        const DateEnd = DateBegin + timeToLife;
-
-        //console.log('Token=',Token);
-
-        //console.log(new Date(),new Date(DateBegin));
-
-        response = await addData({
-            module: moduleSession.ModuleName,
-            form: form.TableName,
-            data: {
-                id: lastID,
-                Parent: docMovement.id,
-                Token: Token,
-                //DateBegin: new Date(DateBegin),
-                //DateEnd: new Date(DateEnd)
-            }
-        });
-        rows = await pg.findAll({
-            Schema: moduleSession.ModuleName,
-            TableName: form.TableName,
-            ColumnList: form.ColumnList
-        });
-
-        entity = rows.find(row => row.Parent == docMovement.id);
-    };
-    //console.log('entity=', entity);
     return response = {
-        Token: entity.Token
+        Token: Token
     };
 };
 

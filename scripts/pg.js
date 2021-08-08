@@ -228,11 +228,18 @@ async function columnListInfo({
     return response;
 };
 
+/**
+ * Создаёт новую строку и возвращает её в в виде объекта
+ * @param {Object.<string, string>} Schema - наименование схемы
+ * @param {Object.<string, string>} TableName - наименование таблицы
+ * @returns {Object.<string, string>}
+ */
 async function create({
     Schema,
     TableName
 } = {}) {
     let response = {};
+    let res = {};
     if (!Schema) return response.Error = 'Schema is null';
     if (!TableName) return response.Error = 'TableName is null';
 
@@ -241,10 +248,19 @@ async function create({
     const client = await pool.connect();
     try {
         query = 'INSERT INTO "' + Schema.toString() + '"."' + TableName.toString() + '" ("Name") VALUES ($1)';
-        console.log('query=',query);
-        const tableData = await client.query(query, ['newRow']);
+        //console.log('query=',query);
+        await client.query(query, ['newRow']);
+
+        query = 'SELECT MAX(id) FROM "' + Schema.toString() + '"."' + TableName.toString() + '"';
+        res = await client.query(query);
+        const newId = res.rows[0].max;
+
+        query = 'SELECT * FROM "' + Schema.toString() + '"."' + TableName.toString() + '" WHERE id = $1';
+        const newDoc = await client.query(query, [newId]);
+        response = newDoc.rows[0];
+
         //response = tableData.rows[0];
-        response = 'New data add';
+        //response = 'New data add';
         /*
         query = 'SELECT * FROM "' + Schema.toString() + '"."tableList" WHERE "id" = ' + TableID.toString();
         res = await client.query(query);
