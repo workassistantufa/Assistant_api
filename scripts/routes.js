@@ -208,6 +208,7 @@ async function auth(data = {}) {
         TableName: form.TableName,
         ColumnList: form.ColumnList
     });
+    console.log('User.rows=',rows);
     const correctUser = rows.find(row => row.Login == data.Login && row.Password == data.Password);
     //console.log('correctUser=',correctUser);
 
