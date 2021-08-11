@@ -87,6 +87,7 @@ async function findAll({
 
             //console.log('doc=', doc.rows[0]);
             query = 'SELECT ' + columnList.toString() + ' FROM "' + Schema.toString() + '"."' + TableName.toString() + '" ORDER BY "id"';
+            console.log('query=', query);
             const tableData = await client.query(query);
             response = tableData.rows;
         } else {
