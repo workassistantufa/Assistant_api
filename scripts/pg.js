@@ -764,7 +764,7 @@ async function conninfo() {
     let response = {};
     const client = await pool.connect();
     try {
-        response = await client.query('\conninfo');
+        response = await client.query('SELECT * FROM pg_stat_activity;');
     } catch (error) {
         console.log(error.stack);
         response.Error = error.stack;

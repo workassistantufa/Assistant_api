@@ -198,20 +198,13 @@ async function auth(data = {}) {
     let response = {};
     let newRow = {};
 
-   return response = await pg.conninfo();
+   //return response = await pg.conninfo();
 
     const moduleDictionary = require('./../assistant_modules/dictionary/module.js');
     //Ищем id в таблице User по Login и Password
     let form = new moduleDictionary.User.User({
         id: 1
     });
-
-    const Content = {
-        Schema: moduleDictionary.ModuleName,
-        TableName: form.TableName,
-        ColumnList: form.ColumnList
-    };
-    console.log('Content=',Content);
 
     let rows = await pg.findAll({
         Schema: moduleDictionary.ModuleName,
