@@ -198,11 +198,22 @@ async function auth(data = {}) {
     let response = {};
     let newRow = {};
 
+   
+
     const moduleDictionary = require('./../assistant_modules/dictionary/module.js');
     //Ищем id в таблице User по Login и Password
     let form = new moduleDictionary.User.User({
         id: 1
     });
+
+    const Content = {
+        Type: 'table',
+        Schema: moduleDictionary.ModuleName,
+        Name: form.TableName
+    };
+    const db_tableInfo = await pg.dbInfo(Content);
+    console.log('db_tableInfo=',db_tableInfo);
+
     let rows = await pg.findAll({
         Schema: moduleDictionary.ModuleName,
         TableName: form.TableName,
