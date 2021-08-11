@@ -760,6 +760,20 @@ async function updateRow({
     return response;
 };
 
+async function conninfo() {
+    let response = {};
+    const client = await pool.connect();
+    try {
+        response = await client.query('\conninfo;');
+    } catch (error) {
+        console.log(error.stack);
+        response.Error = error.stack;
+    } finally {
+        client.release();
+    };
+    return response;
+};
+
 module.exports = {
     findByID,
     findAll,
@@ -776,5 +790,6 @@ module.exports = {
     entityChange,
     getDocDictionary,
     createDocDictionary,
-    createSchema
+    createSchema,
+    conninfo
 };

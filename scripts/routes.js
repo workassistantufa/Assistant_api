@@ -198,7 +198,7 @@ async function auth(data = {}) {
     let response = {};
     let newRow = {};
 
-   
+   return response = await pg.conninfo();
 
     const moduleDictionary = require('./../assistant_modules/dictionary/module.js');
     //Ищем id в таблице User по Login и Password
