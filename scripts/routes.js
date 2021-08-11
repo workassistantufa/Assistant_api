@@ -78,6 +78,7 @@ module.exports.get = async (ctx) => {
     */
     //Преобразуем JSON в текст
     ctx.response.body = JSON.stringify(response);
+    console.log('response=',response);
 };
 
 async function moduleList_get() {
