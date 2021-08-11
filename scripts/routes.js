@@ -207,12 +207,11 @@ async function auth(data = {}) {
     });
 
     const Content = {
-        Type: 'table',
         Schema: moduleDictionary.ModuleName,
-        Name: form.TableName
+        TableName: form.TableName,
+        ColumnList: form.ColumnList
     };
-    const db_tableInfo = await pg.dbInfo(Content);
-    console.log('db_tableInfo=',db_tableInfo);
+    console.log('Content=',Content);
 
     let rows = await pg.findAll({
         Schema: moduleDictionary.ModuleName,
