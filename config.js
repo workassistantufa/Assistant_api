@@ -2,7 +2,7 @@
 module.exports.main_port = 3001;
 
 module.exports.dbConfig = {
-  user: 'assistant',
+  user: 'assistantdb',
   host: 'localhost',
   database: 'assistantdb',
   //database: 'postgres',
