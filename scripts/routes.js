@@ -41,12 +41,13 @@ module.exports.get = async (ctx) => {
     //let where = {};
 
     let response = {};
-    const module = ctx.query.module;
-    const form = ctx.query.form;
-    const id = ctx.query.id;
-    const UsertAuthID = ctx.query.UsertAuthID;
 
     try {
+        const module = ctx.query.module;
+        const form = ctx.query.form;
+        const id = ctx.query.id;
+        const UsertAuthID = ctx.query.UsertAuthID;
+
         if (module == 'session') response = await checkAutID({
             UsertAuthID
         })
@@ -59,7 +60,7 @@ module.exports.get = async (ctx) => {
             });
         };
     } catch (error) {
-        response.Error = error;
+        response.Error = error.message;
     }
 
 
@@ -211,7 +212,7 @@ module.exports.post = async (ctx) => {
     //let TableName = ctx.request.body.TableName;
     //let columnList = ctx.request.body.columnList; //{} с полями и их значениями
     let response = {};
-    
+
     try {
         const module = ctx.request.body.module;
         const form = ctx.request.body.form;
@@ -226,7 +227,7 @@ module.exports.post = async (ctx) => {
             });
         };
     } catch (error) {
-        response.Error = error;
+        response.Error = error.message;
     }
 
 

@@ -5,10 +5,10 @@ const Router = require('@koa/router');
 const router = new Router();
 
 const bodyParser = require('koa-bodyparser');
-//app.use(bodyParser());//prod закоментить
+app.use(bodyParser());
 
 const cors = require('koa-cors');
-//app.use(cors());
+//app.use(cors());//prod закоментить
 
 const config = require('./config.js');
 const routes = require('./scripts/routes.js');
