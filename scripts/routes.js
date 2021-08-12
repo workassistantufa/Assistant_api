@@ -99,7 +99,7 @@ async function checkAutID({
         TableName: 'Entity',
         ColumnList: form.ColumnList
     });
-    //console.log('usertAuthIDRows=',usertAuthIDRows);
+    console.log('usertAuthIDRows=',usertAuthIDRows);
     const authIDCorrect = usertAuthIDRows.some(row => row.Token == UsertAuthID && row.DateEnd == null)
     if (authIDCorrect) return {
         Error: 'Token is correct'
