@@ -46,17 +46,23 @@ module.exports.get = async (ctx) => {
     const id = ctx.query.id;
     const UsertAuthID = ctx.query.UsertAuthID;
 
-    if (module == 'session') response = await checkAutID({
-        UsertAuthID
-    })
-    else if (!module) response = await moduleList_get();
-    else {
-        response = await module_get({
-            module,
-            form,
-            id
-        });
-    };
+    try {
+        if (module == 'session') response = await checkAutID({
+            UsertAuthID
+        })
+        else if (!module) response = await moduleList_get();
+        else {
+            response = await module_get({
+                module,
+                form,
+                id
+            });
+        };  
+    } catch (error) {
+        response.Error = error;
+    }
+
+    
 
     //let module = 'useradmin';
     //const dictionaryModels = require('./../assistant_modules/' + module + '/dic.js');
@@ -209,15 +215,19 @@ module.exports.post = async (ctx) => {
     const form = ctx.request.body.form;
     const data = ctx.request.body.data; //{} с полями и их значениями
 
-    if (module == 'session') response = await auth(data);
-
-    else if (module && form) {
-        response = await addData({
-            module,
-            form,
-            data
-        });
-    };
+    try {
+        if (module == 'session') response = await auth(data);
+        else if (module && form) {
+            response = await addData({
+                module,
+                form,
+                data
+            });
+        };  
+    } catch (error) {
+        response.Error = error;
+    }
+    
 
     //Преобразуем JSON в текст
     ctx.response.body = JSON.stringify(response);
