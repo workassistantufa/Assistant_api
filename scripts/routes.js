@@ -57,12 +57,12 @@ module.exports.get = async (ctx) => {
                 form,
                 id
             });
-        };  
+        };
     } catch (error) {
         response.Error = error;
     }
 
-    
+
 
     //let module = 'useradmin';
     //const dictionaryModels = require('./../assistant_modules/' + module + '/dic.js');
@@ -105,14 +105,14 @@ async function checkAutID({
         TableName: 'Entity',
         ColumnList: form.ColumnList
     });
-    console.log('usertAuthIDRows=',usertAuthIDRows);
+    console.log('usertAuthIDRows=', usertAuthIDRows);
     const authIDCorrect = usertAuthIDRows.some(row => row.Token == UsertAuthID && row.DateEnd == null)
     if (authIDCorrect) return {
         Error: 'Token is correct'
     }
     else return {
         Error: 'Token is expired'
-    }; 
+    };
 }
 
 async function moduleList_get() {
@@ -205,17 +205,18 @@ async function module_get({
 };
 
 module.exports.post = async (ctx) => {
-    //console.log("post_body:", ctx.request.body);
+    console.log("post_body:", ctx.request);
     //let type = ctx.request.body.type; //Тип окна
     //let tableID = ctx.request.body.tableID; //id таблицы tableList
     //let TableName = ctx.request.body.TableName;
     //let columnList = ctx.request.body.columnList; //{} с полями и их значениями
     let response = {};
-    const module = ctx.request.body.module;
-    const form = ctx.request.body.form;
-    const data = ctx.request.body.data; //{} с полями и их значениями
-
+    
     try {
+        const module = ctx.request.body.module;
+        const form = ctx.request.body.form;
+        const data = ctx.request.body.data; //{} с полями и их значениями
+
         if (module == 'session') response = await auth(data);
         else if (module && form) {
             response = await addData({
@@ -223,11 +224,11 @@ module.exports.post = async (ctx) => {
                 form,
                 data
             });
-        };  
+        };
     } catch (error) {
         response.Error = error;
     }
-    
+
 
     //Преобразуем JSON в текст
     ctx.response.body = JSON.stringify(response);
