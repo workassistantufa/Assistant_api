@@ -24,7 +24,7 @@ const Entity = class {
         return 'Entity';
     }
     get FormDescription() {
-        return 'Сессии пользователей';
+        return 'Строки документов Складского документооборота';
     }
     get id() {
         return this._id;
