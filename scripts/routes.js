@@ -44,10 +44,12 @@ module.exports.get = async (ctx) => {
     const module = ctx.query.module;
     const form = ctx.query.form;
     const id = ctx.query.id;
+    const UsertAuthID = ctx.query.UsertAuthID;
 
-    //await pg.createSchema({Name:'dictionary'})
-
-    if (!module) response = await moduleList_get();
+    if (module == 'session') response = await checkAutID({
+        UsertAuthID
+    })
+    else if (!module) response = await moduleList_get();
     else {
         response = await module_get({
             module,
@@ -78,8 +80,34 @@ module.exports.get = async (ctx) => {
     */
     //Преобразуем JSON в текст
     ctx.response.body = JSON.stringify(response);
-    console.log('response=',response);
+    //console.log('response=', response);
 };
+
+async function checkAutID({
+    UsertAuthID = null
+}) {
+    if (!UsertAuthID) return {
+        Error: 'Token is expired'
+    };
+
+    const module = require('./../assistant_modules/session/module.js');
+    const form = new module.Entity.Entity({
+        id: 1
+    });
+    const usertAuthIDRows = await pg.findAll({
+        Schema: module.ModuleName,
+        TableName: 'Entity',
+        ColumnList: form.ColumnList
+    });
+    //console.log('usertAuthIDRows=',usertAuthIDRows);
+    const authIDCorrect = usertAuthIDRows.some(row => row.Token == UsertAuthID && row.DateEnd == null)
+    if (authIDCorrect) return {
+        Error: 'Token is correct'
+    }
+    else return {
+        Error: 'Token is expired'
+    }; 
+}
 
 async function moduleList_get() {
     let response = {};
@@ -199,7 +227,7 @@ async function auth(data = {}) {
     let response = {};
     let newRow = {};
 
-   //return response = await pg.conninfo();
+    //return response = await pg.conninfo();
 
     const moduleDictionary = require('./../assistant_modules/dictionary/module.js');
     //Ищем id в таблице User по Login и Password
@@ -212,7 +240,7 @@ async function auth(data = {}) {
         TableName: form.TableName,
         ColumnList: form.ColumnList
     });
-    console.log('User.rows=',rows);
+    console.log('User.rows=', rows);
     const correctUser = rows.find(row => row.Login == data.Login && row.Password == data.Password);
     //console.log('correctUser=',correctUser);
 

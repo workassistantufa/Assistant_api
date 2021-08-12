@@ -1,11 +1,12 @@
 //app.listen()
 module.exports.main_port = 3001;
 
-module.exports.dbConfig = {
-  user: 'assistantdb',
+module.exports.dbConfig = {  
   host: 'localhost',
-  //database: 'assistantdb',
-  database: 'postgres',
+  //user: 'assistant',//dev
+  //database: 'assistantdb',//dev
+  user: 'assistantdb',//prod
+  database: 'postgres',//prod
   password: 'Workassistant1',
   port: 5432,
 }
