@@ -205,7 +205,7 @@ async function module_get({
 };
 
 module.exports.post = async (ctx) => {
-    console.log("post_body:", ctx.request.body);
+    //console.log("post_body:", ctx.request.body);
     //let type = ctx.request.body.type; //Тип окна
     //let tableID = ctx.request.body.tableID; //id таблицы tableList
     //let TableName = ctx.request.body.TableName;
